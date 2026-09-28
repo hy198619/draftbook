@@ -80,17 +80,25 @@ struct GrowingTextEditor: NSViewRepresentable {
         guard let textView = context.coordinator.textView else { return }
 
         textView.commitAction = onCommit
-        context.coordinator.applyTextStyle()
 
-        if textView.string != text {
-            // A focus/layout update can arrive before SwiftUI has propagated the
-            // latest NSTextView change through the binding. Never replace that
-            // newer local value with the stale binding value.
-            if context.coordinator.lastPublishedText != textView.string {
-                context.coordinator.applyExternalText(text)
+        // Chinese input methods keep an uncommitted "marked text" range while
+        // the user is choosing candidates. Assigning `string`, restoring a
+        // selection, or rewriting text attributes in that window cancels the
+        // composition. A SwiftUI refresh can arrive during that composition,
+        // so all mutations of NSTextView must wait until it has committed.
+        if !textView.hasMarkedText() {
+            context.coordinator.applyTextStyle()
+
+            if textView.string != text {
+                // A focus/layout update can arrive before SwiftUI has propagated the
+                // latest NSTextView change through the binding. Never replace that
+                // newer local value with the stale binding value.
+                if context.coordinator.lastPublishedText != textView.string {
+                    context.coordinator.applyExternalText(text)
+                }
+            } else if context.coordinator.lastPublishedText == text {
+                context.coordinator.lastPublishedText = nil
             }
-        } else if context.coordinator.lastPublishedText == text {
-            context.coordinator.lastPublishedText = nil
         }
 
         context.coordinator.updateHeight()
@@ -147,7 +155,7 @@ struct GrowingTextEditor: NSViewRepresentable {
         }
 
         func applyExternalText(_ value: String) {
-            guard let textView else { return }
+            guard let textView, !textView.hasMarkedText() else { return }
             let selectedRanges = textView.selectedRanges
             isApplyingExternalText = true
             textView.string = value

@@ -12,14 +12,14 @@
 
 有些内容不值得单独建文件，或者暂时不知道该存在哪里。长期记在 DraftBook 里，也都没问题。
 
-> 当前为 `0.9.2 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
+> 当前为 `0.9.3 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
 
 ## 下载
 
 前往 [GitHub Releases](https://github.com/hy198619/draftbook/releases) 下载最新公开测试版：
 
 ```text
-DraftBook-v0.9.2-macOS-unsigned.dmg
+DraftBook-v0.9.3-macOS-unsigned.dmg
 ```
 
 系统要求：macOS 14 Sonoma 或更高版本，支持 Apple Silicon 与 Intel Mac。

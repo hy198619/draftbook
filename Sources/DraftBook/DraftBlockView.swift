@@ -69,12 +69,6 @@ struct DraftBlockView: View {
                         ))
                         .frame(width: 26, height: 8)
                         .overlay {
-                            Capsule()
-                                .stroke(
-                                    isDue(draft, referenceDate: referenceDate) ? Color.orange : Color.clear,
-                                    lineWidth: 1.25
-                                )
-
                             if draft.pinned {
                                 Image(systemName: "pin.fill")
                                     .font(.system(size: 6, weight: .bold))
@@ -234,7 +228,7 @@ struct DraftBlockView: View {
     }
 
     private func tagBaseColor(for draft: Draft) -> Color {
-        draft.color == .gray ? Color(nsColor: .labelColor) : draft.color.swiftUIColor
+        draft.color.swiftUIColor
     }
 
     private func isDue(_ draft: Draft, referenceDate: Date) -> Bool {
@@ -287,7 +281,7 @@ struct DraftBlockView: View {
 extension DraftColor {
     var swiftUIColor: Color {
         switch self {
-        case .gray: Color(nsColor: .systemGray)
+        case .gray: .black
         case .yellow: Color(nsColor: .systemYellow)
         case .blue: Color(nsColor: .systemBlue)
         case .purple: Color(nsColor: .systemPurple)

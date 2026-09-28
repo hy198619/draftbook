@@ -37,7 +37,7 @@ Apple 对这一流程的官方说明：<https://support.apple.com/102445>
 在终端执行：
 
 ```bash
-shasum -a 256 ~/Downloads/DraftBook-v0.9.2-macOS-unsigned.dmg
+shasum -a 256 ~/Downloads/DraftBook-v0.9.3-macOS-unsigned.dmg
 ```
 
 输出值应与同一 Release 中 `SHA256SUMS.txt` 的内容完全一致。

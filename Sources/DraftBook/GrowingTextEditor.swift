@@ -24,11 +24,14 @@ struct GrowingTextEditor: NSViewRepresentable {
         let textView = DraftTextView()
         textView.delegate = context.coordinator
         textView.commitAction = onCommit
-        textView.focusChanged = { [weak coordinator = context.coordinator] focused, currentText in
+        textView.focusChanged = { [weak coordinator = context.coordinator] _, _ in
             guard let coordinator else { return }
             DispatchQueue.main.async {
-                coordinator.publishText(currentText)
-                coordinator.parent.isFocused = focused
+                guard let current = coordinator.textView else { return }
+                // A queued focus callback must never publish an older snapshot
+                // over text typed or committed since that callback was queued.
+                coordinator.publishText(current.string)
+                coordinator.parent.isFocused = current.window?.firstResponder === current
             }
         }
         textView.isRichText = false
@@ -264,6 +267,27 @@ final class DraftScrollView: NSScrollView {
 }
 
 final class DraftTextView: NSTextView {
+    private var outsideClickMonitor: Any?
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        if let outsideClickMonitor { NSEvent.removeMonitor(outsideClickMonitor) }
+        outsideClickMonitor = nil
+        guard window != nil else { return }
+        outsideClickMonitor = NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            guard let self, let window = self.window,
+                  event.window === window, window.firstResponder === self else { return event }
+            if !self.visibleRect.contains(self.convert(event.locationInWindow, from: nil)) {
+                window.makeFirstResponder(nil)
+            }
+            return event
+        }
+    }
+
+    deinit {
+        if let outsideClickMonitor { NSEvent.removeMonitor(outsideClickMonitor) }
+    }
+
     var commitAction: (() -> Void)?
     var focusChanged: ((Bool, String) -> Void)?
 

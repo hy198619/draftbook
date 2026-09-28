@@ -55,8 +55,8 @@ struct FeatureGuideView: View {
 
                     guideSection(
                         title: "3. Markdown",
-                        example: "将鼠标移到草稿分隔线上，点击 MD。",
-                        result: "只有这一条草稿切换为 Markdown 预览；原始纯文本不会改变。"
+                        example: "直接写 # 标题、**重点** 或列表，按 ⌘↩︎ 划定草稿。",
+                        result: "自动呈现 Markdown；点击正文编辑原文，离开编辑后恢复预览。复制整条保留语法和换行。普通换行保留，图片和 HTML 以文字呈现。"
                     )
 
                     guideSection(

@@ -34,6 +34,7 @@ rm -rf "$bundle_dir"
 mkdir -p "$macos_dir" "$resources_dir"
 cp "$bin_dir/DraftBook" "$macos_dir/DraftBook"
 cp "$project_dir/Resources/Info.plist" "$contents_dir/Info.plist"
+cp -R "$project_dir/Resources/ThirdParty" "$resources_dir/ThirdParty"
 chmod +x "$macos_dir/DraftBook"
 
 xcrun actool "$asset_catalog" \

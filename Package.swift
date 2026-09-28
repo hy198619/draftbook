@@ -12,11 +12,18 @@ let package = Package(
         .library(name: "DraftBookCore", targets: ["DraftBookCore"]),
         .executable(name: "DraftBook", targets: ["DraftBook"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/swiftlang/swift-markdown.git", exact: "0.5.0")
+    ],
     targets: [
         .target(name: "DraftBookCore"),
         .executableTarget(
             name: "DraftBook",
-            dependencies: ["DraftBookCore"]
+            dependencies: ["DraftBookCore", .product(name: "Markdown", package: "swift-markdown")]
+        ),
+        .testTarget(
+            name: "DraftBookEditorTests",
+            dependencies: ["DraftBook", .product(name: "Markdown", package: "swift-markdown")]
         ),
         .testTarget(
             name: "DraftBookCoreTests",

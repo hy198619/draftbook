@@ -12,14 +12,14 @@
 
 有些内容不值得单独建文件，或者暂时不知道该存在哪里。长期记在 DraftBook 里，也都没问题。
 
-> 当前为 `0.9.3 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
+> 当前为 `0.9.4 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
 
 ## 下载
 
 前往 [GitHub Releases](https://github.com/hy198619/draftbook/releases) 下载最新公开测试版：
 
 ```text
-DraftBook-v0.9.3-macOS-unsigned.dmg
+DraftBook-v0.9.4-macOS-unsigned.dmg
 ```
 
 系统要求：macOS 14 Sonoma 或更高版本，支持 Apple Silicon 与 Intel Mac。
@@ -33,7 +33,7 @@ DraftBook-v0.9.3-macOS-unsigned.dmg
 - `⌘↩︎` 将当前内容划定为一条独立草稿，新输入区始终留在最上方；
 - 不相关的内容可以留在同一页，由分隔线区分，并能分别编辑和管理；
 - 自动保存，重启后恢复未划定和已划定内容；
-- 每条草稿可独立切换 Markdown；
+- 划定后自动呈现 Markdown，点击正文编辑源码，复制整条保留原始语法；
 - 彩色标签用于分类，并在创建后的 7 天内连续褪色；悬停可查看创建、更新及清理时间；
 - 全文搜索，并可只看某个颜色标签；
 - 到期草稿进入清理台，可延期、固定、存档或删除；
@@ -49,7 +49,7 @@ DraftBook-v0.9.3-macOS-unsigned.dmg
 2. 写完一条后按 `⌘↩︎`，把它单独划定为一条草稿；
 3. 继续在最上方输入另一个内容——它可以与上一条毫不相干；
 4. 点击彩色草稿签更换标签颜色；
-5. 鼠标悬停在草稿上方，可复制、固定、切换 Markdown、存档或删除；
+5. 点击草稿正文编辑；鼠标悬停在草稿上方，可复制、固定、存档或删除；
 6. 到期内容会显示“待处理”，在清理台决定它的去留；
 7. 按 `⌘,` 打开设置。
 

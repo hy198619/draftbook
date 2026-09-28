@@ -24,7 +24,7 @@ struct DraftBlockView: View {
                     draftHeader(draft, referenceDate: context.date)
                 }
 
-                if draft.markdownEnabled && !isEditingMarkdown {
+                if !isEditingMarkdown {
                     markdownPreview(draft)
                 } else {
                     GrowingTextEditor(
@@ -40,6 +40,9 @@ struct DraftBlockView: View {
                 }
             }
             .padding(.bottom, 10)
+            .onChange(of: editorFocused) { _, focused in
+                if !focused { isEditingMarkdown = false }
+            }
             .sheet(isPresented: $showingArchiveSheet) {
                 ArchiveDraftSheet(draft: draft) { title in
                     store.archive(id: draft.id, title: title)
@@ -125,11 +128,6 @@ struct DraftBlockView: View {
                 store.togglePinned(id: draft.id)
             }
 
-            textButton("MD", active: draft.markdownEnabled, help: draft.markdownEnabled ? "关闭 Markdown" : "开启 Markdown") {
-                store.toggleMarkdown(id: draft.id)
-                isEditingMarkdown = false
-            }
-
             iconButton("archivebox", help: "存档") {
                 showingArchiveSheet = true
             }
@@ -197,27 +195,17 @@ struct DraftBlockView: View {
     }
 
     private func markdownPreview(_ draft: Draft) -> some View {
-        Group {
-            if let attributed = try? AttributedString(
-                markdown: draft.content,
-                options: .init(interpretedSyntax: .full)
-            ) {
-                Text(attributed)
-            } else {
-                Text(draft.content)
-            }
-        }
+        MarkdownDraftPreview(source: draft.content)
         .font(.system(size: 14))
         .lineSpacing(3)
-        .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
         .contentShape(Rectangle())
-        .onTapGesture(count: 2) {
+        .onTapGesture {
             isEditingMarkdown = true
             editorFocused = true
         }
-        .help("双击编辑 Markdown 源码")
+        .help("点击编辑原文；复制整条会保留 Markdown 语法")
     }
 
     private var contentBinding: Binding<String> {

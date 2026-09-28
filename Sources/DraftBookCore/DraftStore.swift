@@ -350,7 +350,7 @@ public final class DraftStore: ObservableObject {
                 isSample: true
             ),
             Draft(
-                content: "# 示例：Markdown\n\n- 每条草稿可独立开启 Markdown\n- 点击 **MD** 按钮切换显示状态",
+                content: "# 示例：Markdown\n\n- 划定后自动呈现 **Markdown**\n- 点击正文编辑源码，点击外部结束编辑\n- 复制整条保留原始语法\n\n> 随手写，稍后再整理。",
                 createdAt: now.addingTimeInterval(-day),
                 updatedAt: now.addingTimeInterval(-day),
                 color: .green,

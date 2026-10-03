@@ -195,17 +195,23 @@ struct DraftBlockView: View {
     }
 
     private func markdownPreview(_ draft: Draft) -> some View {
-        MarkdownDraftPreview(source: draft.content)
+        MarkdownDraftPreview(source: draft.content) {
+            isEditingMarkdown = true
+            editorFocused = true
+        }
         .font(.system(size: 14))
         .lineSpacing(3)
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.vertical, 12)
         .contentShape(Rectangle())
         .onTapGesture {
+            // A Command-click is routed by DraftLinkTextField. Do not also
+            // switch to source editing after opening a link.
+            guard !NSEvent.modifierFlags.contains(.command) else { return }
             isEditingMarkdown = true
             editorFocused = true
         }
-        .help("点击编辑原文；复制整条会保留 Markdown 语法")
+        .help("单击编辑原文；⌘ 单击链接打开；复制整条保留 Markdown 语法")
     }
 
     private var contentBinding: Binding<String> {

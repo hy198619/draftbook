@@ -6,6 +6,7 @@ import SwiftUI
 /// are displayed as newlines, a CommonMark-permitted presentation choice.
 struct MarkdownDraftPreview: View {
     let source: String
+    var onEdit: () -> Void = {}
 
     var body: some View {
         blocks(Document(parsing: source, options: [.disableSmartOpts]))
@@ -27,9 +28,9 @@ struct MarkdownDraftPreview: View {
         switch node {
         case let heading as Heading:
             let size = CGFloat(max(15, 26 - heading.level * 2))
-            return AnyView(NativeMarkdownText(content: nativeInline(heading, size: size, bold: true)))
+            return AnyView(NativeMarkdownText(content: nativeInline(heading, size: size, bold: true), onEdit: onEdit))
         case let paragraph as Paragraph:
-            return AnyView(NativeMarkdownText(content: nativeInline(paragraph)))
+            return AnyView(NativeMarkdownText(content: nativeInline(paragraph), onEdit: onEdit))
         case let code as CodeBlock:
             return AnyView(SwiftUI.Text(code.code.hasSuffix("\n") ? String(code.code.dropLast()) : code.code)
                 .font(.system(size: 13, design: .monospaced))
@@ -51,7 +52,7 @@ struct MarkdownDraftPreview: View {
                     let cells = Array(rows[index].children)
                     GridRow {
                         ForEach(cells.indices, id: \.self) { cell in
-                            NativeMarkdownText(content: nativeInline(cells[cell], bold: index == 0))
+                            NativeMarkdownText(content: nativeInline(cells[cell], bold: index == 0), onEdit: onEdit)
                         }
                     }
                     if index == 0 { Divider() }
@@ -88,12 +89,12 @@ struct MarkdownDraftPreview: View {
     /// NSTextField applies obliqueness to CJK fallback glyphs, unlike SwiftUI's
     /// italic font trait, which can leave Chinese glyphs visibly upright.
     func nativeInline(_ node: any Markup, size: CGFloat = 14, bold: Bool = false,
-                      italic: Bool = false, strike: Bool = false, link: Bool = false) -> NSAttributedString {
+                      italic: Bool = false, strike: Bool = false) -> NSAttributedString {
         if let text = node as? Markdown.Text {
-            return nativeText(text.string, size: size, bold: bold, italic: italic, strike: strike, link: link)
+            return nativeText(text.string, size: size, bold: bold, italic: italic, strike: strike)
         }
         if node is SoftBreak || node is LineBreak {
-            return nativeText("\n", size: size, bold: bold, italic: italic, strike: strike, link: link)
+            return nativeText("\n", size: size, bold: bold, italic: italic, strike: strike)
         }
         if let code = node as? InlineCode {
             return NSAttributedString(string: code.code, attributes: [
@@ -102,35 +103,52 @@ struct MarkdownDraftPreview: View {
             ])
         }
         if let html = node as? InlineHTML {
-            return nativeText(html.rawHTML, size: size, bold: bold, italic: italic, strike: strike, link: link)
+            return nativeText(html.rawHTML, size: size, bold: bold, italic: italic, strike: strike, detectLinks: false)
         }
         if let image = node as? Markdown.Image {
             return nativeText("[图片：\(image.plainText)](\(image.source ?? ""))", size: size,
-                              bold: bold, italic: italic, strike: strike, link: link)
+                              bold: bold, italic: italic, strike: strike, detectLinks: false)
         }
         let result = NSMutableAttributedString(string: "")
         for child in node.children {
             result.append(nativeInline(child, size: size, bold: bold || node is Strong,
                                        italic: italic || node is Emphasis,
-                                       strike: strike || node is Strikethrough,
-                                       link: link || node is Markdown.Link))
+                                       strike: strike || node is Strikethrough))
+        }
+        if let link = node as? Markdown.Link,
+           let url = DraftLink.markdownDestination(link.destination), result.length > 0 {
+            result.addAttributes(linkAttributes(for: url), range: NSRange(location: 0, length: result.length))
         }
         return result
     }
 
     private func nativeText(_ text: String, size: CGFloat, bold: Bool, italic: Bool,
-                            strike: Bool, link: Bool) -> NSAttributedString {
+                            strike: Bool, detectLinks: Bool = true) -> NSAttributedString {
         var attributes: [NSAttributedString.Key: Any] = [
             .font: NSFont.systemFont(ofSize: size, weight: bold ? .bold : .regular),
-            .foregroundColor: link ? NSColor.controlAccentColor : NSColor.labelColor
+            .foregroundColor: NSColor.labelColor
         ]
         if italic { attributes[.obliqueness] = 0.25 }
         if strike { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
-        if link { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
         let paragraph = NSMutableParagraphStyle()
         paragraph.lineSpacing = 3
         attributes[.paragraphStyle] = paragraph
-        return NSAttributedString(string: text, attributes: attributes)
+        let result = NSMutableAttributedString(string: text, attributes: attributes)
+        if detectLinks {
+            for match in DraftLink.detect(in: text) {
+                result.addAttributes(linkAttributes(for: match.url), range: match.range)
+            }
+        }
+        return result
+    }
+
+    private func linkAttributes(for url: URL) -> [NSAttributedString.Key: Any] {
+        [
+            .link: url,
+            .foregroundColor: NSColor.controlAccentColor,
+            .underlineStyle: NSUnderlineStyle.single.rawValue,
+            .toolTip: "⌘ 单击打开：\(url.isFileURL ? url.path : url.absoluteString)"
+        ]
     }
 
     func inline(_ node: any Markup) -> AttributedString {
@@ -169,9 +187,12 @@ struct MarkdownDraftPreview: View {
 
 private struct NativeMarkdownText: NSViewRepresentable {
     let content: NSAttributedString
+    let onEdit: () -> Void
 
-    func makeNSView(context: Context) -> NSTextField {
-        let field = NSTextField(labelWithAttributedString: content)
+    func makeNSView(context: Context) -> DraftLinkTextField {
+        let field = DraftLinkTextField(frame: .zero)
+        field.attributedStringValue = content
+        field.onEdit = onEdit
         field.isEditable = false
         field.isSelectable = false
         field.drawsBackground = false
@@ -182,11 +203,12 @@ private struct NativeMarkdownText: NSViewRepresentable {
         return field
     }
 
-    func updateNSView(_ field: NSTextField, context: Context) {
+    func updateNSView(_ field: DraftLinkTextField, context: Context) {
         field.attributedStringValue = content
+        field.onEdit = onEdit
     }
 
-    func sizeThatFits(_ proposal: ProposedViewSize, nsView field: NSTextField,
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView field: DraftLinkTextField,
                       context: Context) -> CGSize? {
         guard let width = proposal.width, width > 0 else { return nil }
         let bounds = content.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),

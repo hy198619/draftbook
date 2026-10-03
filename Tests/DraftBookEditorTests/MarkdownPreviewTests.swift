@@ -22,12 +22,11 @@ final class MarkdownPreviewTests: XCTestCase {
 
     func testSingleAsteriskEmphasisHasVisibleItalicFont() {
         let source = "普通*斜体*文字"
-        let rendered = MarkdownDraftPreview(source: source).styledInline(Document(parsing: source))
-        XCTAssertEqual(String(rendered.characters), "普通斜体文字")
-        let italicRun = rendered.runs.first { String(rendered.characters[$0.range]) == "斜体" }
-        XCTAssertTrue(italicRun?.inlinePresentationIntent?.contains(.emphasized) == true)
-        XCTAssertTrue(String(reflecting: italicRun?.font).contains("ItalicModifier"))
-        XCTAssertTrue(rendered.runs.contains { String(rendered.characters[$0.range]) == "普通" && $0.font == nil })
+        let rendered = MarkdownDraftPreview(source: source).nativeInline(Document(parsing: source))
+        XCTAssertEqual(rendered.string, "普通斜体文字")
+        XCTAssertNil(rendered.attribute(.obliqueness, at: 0, effectiveRange: nil))
+        XCTAssertEqual(rendered.attribute(.obliqueness, at: 2, effectiveRange: nil) as? Double, 0.25)
+        XCTAssertNil(rendered.attribute(.obliqueness, at: 4, effectiveRange: nil))
     }
 
     func testBlockStructureAndOrderedStart() {

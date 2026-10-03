@@ -1,3 +1,4 @@
+import AppKit
 import Markdown
 import SwiftUI
 
@@ -26,10 +27,9 @@ struct MarkdownDraftPreview: View {
         switch node {
         case let heading as Heading:
             let size = CGFloat(max(15, 26 - heading.level * 2))
-            return AnyView(SwiftUI.Text(styledInline(heading, size: size, weight: .bold))
-                .font(.system(size: size, weight: .bold)))
+            return AnyView(NativeMarkdownText(content: nativeInline(heading, size: size, bold: true)))
         case let paragraph as Paragraph:
-            return AnyView(SwiftUI.Text(styledInline(paragraph)))
+            return AnyView(NativeMarkdownText(content: nativeInline(paragraph)))
         case let code as CodeBlock:
             return AnyView(SwiftUI.Text(code.code.hasSuffix("\n") ? String(code.code.dropLast()) : code.code)
                 .font(.system(size: 13, design: .monospaced))
@@ -51,8 +51,7 @@ struct MarkdownDraftPreview: View {
                     let cells = Array(rows[index].children)
                     GridRow {
                         ForEach(cells.indices, id: \.self) { cell in
-                            SwiftUI.Text(styledInline(cells[cell], weight: index == 0 ? .semibold : .regular))
-                                .fontWeight(index == 0 ? .semibold : .regular)
+                            NativeMarkdownText(content: nativeInline(cells[cell], bold: index == 0))
                         }
                     }
                     if index == 0 { Divider() }
@@ -86,27 +85,52 @@ struct MarkdownDraftPreview: View {
         return start.map { "\($0 + index)." } ?? "•"
     }
 
-    // SwiftUI does not reliably turn presentation intent into a visible italic
-    // font once a parent view supplies its own font. Give emphasized runs an
-    // explicit font while leaving plain text and inline code unchanged.
-    func styledInline(
-        _ node: any Markup,
-        size: CGFloat = 14,
-        weight: SwiftUI.Font.Weight = .regular
-    ) -> AttributedString {
-        var result = inline(node)
-        for run in result.runs {
-            let intent = run.inlinePresentationIntent ?? []
-            guard run.font == nil,
-                  intent.contains(.emphasized) || intent.contains(.stronglyEmphasized) else { continue }
-            var font = SwiftUI.Font.system(
-                size: size,
-                weight: intent.contains(.stronglyEmphasized) ? .bold : weight
-            )
-            if intent.contains(.emphasized) { font = font.italic() }
-            result[run.range].font = font
+    /// NSTextField applies obliqueness to CJK fallback glyphs, unlike SwiftUI's
+    /// italic font trait, which can leave Chinese glyphs visibly upright.
+    func nativeInline(_ node: any Markup, size: CGFloat = 14, bold: Bool = false,
+                      italic: Bool = false, strike: Bool = false, link: Bool = false) -> NSAttributedString {
+        if let text = node as? Markdown.Text {
+            return nativeText(text.string, size: size, bold: bold, italic: italic, strike: strike, link: link)
+        }
+        if node is SoftBreak || node is LineBreak {
+            return nativeText("\n", size: size, bold: bold, italic: italic, strike: strike, link: link)
+        }
+        if let code = node as? InlineCode {
+            return NSAttributedString(string: code.code, attributes: [
+                .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .regular),
+                .backgroundColor: NSColor.secondaryLabelColor.withAlphaComponent(0.12)
+            ])
+        }
+        if let html = node as? InlineHTML {
+            return nativeText(html.rawHTML, size: size, bold: bold, italic: italic, strike: strike, link: link)
+        }
+        if let image = node as? Markdown.Image {
+            return nativeText("[图片：\(image.plainText)](\(image.source ?? ""))", size: size,
+                              bold: bold, italic: italic, strike: strike, link: link)
+        }
+        let result = NSMutableAttributedString(string: "")
+        for child in node.children {
+            result.append(nativeInline(child, size: size, bold: bold || node is Strong,
+                                       italic: italic || node is Emphasis,
+                                       strike: strike || node is Strikethrough,
+                                       link: link || node is Markdown.Link))
         }
         return result
+    }
+
+    private func nativeText(_ text: String, size: CGFloat, bold: Bool, italic: Bool,
+                            strike: Bool, link: Bool) -> NSAttributedString {
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: size, weight: bold ? .bold : .regular),
+            .foregroundColor: link ? NSColor.controlAccentColor : NSColor.labelColor
+        ]
+        if italic { attributes[.obliqueness] = 0.25 }
+        if strike { attributes[.strikethroughStyle] = NSUnderlineStyle.single.rawValue }
+        if link { attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue }
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineSpacing = 3
+        attributes[.paragraphStyle] = paragraph
+        return NSAttributedString(string: text, attributes: attributes)
     }
 
     func inline(_ node: any Markup) -> AttributedString {
@@ -140,5 +164,33 @@ struct MarkdownDraftPreview: View {
             }
             return result
         }
+    }
+}
+
+private struct NativeMarkdownText: NSViewRepresentable {
+    let content: NSAttributedString
+
+    func makeNSView(context: Context) -> NSTextField {
+        let field = NSTextField(labelWithAttributedString: content)
+        field.isEditable = false
+        field.isSelectable = false
+        field.drawsBackground = false
+        field.isBordered = false
+        field.maximumNumberOfLines = 0
+        field.lineBreakMode = .byWordWrapping
+        field.cell?.wraps = true
+        return field
+    }
+
+    func updateNSView(_ field: NSTextField, context: Context) {
+        field.attributedStringValue = content
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, nsView field: NSTextField,
+                      context: Context) -> CGSize? {
+        guard let width = proposal.width, width > 0 else { return nil }
+        let bounds = content.boundingRect(with: CGSize(width: width, height: .greatestFiniteMagnitude),
+                                          options: [.usesLineFragmentOrigin, .usesFontLeading])
+        return CGSize(width: width, height: max(ceil(bounds.height) + 2, 18))
     }
 }

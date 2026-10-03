@@ -20,6 +20,16 @@ final class MarkdownPreviewTests: XCTestCase {
         })
     }
 
+    func testSingleAsteriskEmphasisHasVisibleItalicFont() {
+        let source = "普通*斜体*文字"
+        let rendered = MarkdownDraftPreview(source: source).styledInline(Document(parsing: source))
+        XCTAssertEqual(String(rendered.characters), "普通斜体文字")
+        let italicRun = rendered.runs.first { String(rendered.characters[$0.range]) == "斜体" }
+        XCTAssertTrue(italicRun?.inlinePresentationIntent?.contains(.emphasized) == true)
+        XCTAssertTrue(String(reflecting: italicRun?.font).contains("ItalicModifier"))
+        XCTAssertTrue(rendered.runs.contains { String(rendered.characters[$0.range]) == "普通" && $0.font == nil })
+    }
+
     func testBlockStructureAndOrderedStart() {
         let document = Document(parsing: "# 标题\n\n3. 第一项\n4. 第二项\n\n> 引用\n\n```swift\nlet x = 1\n```\n\n---")
         let nodes = Array(document.children)

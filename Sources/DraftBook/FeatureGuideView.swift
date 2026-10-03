@@ -9,9 +9,9 @@ struct FeatureGuideView: View {
         VStack(spacing: 0) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("欢迎使用草稿本")
+                    Text("DraftBook · 草稿本使用说明")
                         .font(.system(size: 18, weight: .semibold))
-                    Text("给一人公司主理人和内容创作者的文字临时中转站")
+                    Text("给一人公司主理人和内容创作者的草稿本，一个文字的临时中转站")
                         .font(.system(size: 12))
                         .foregroundStyle(.secondary)
                 }
@@ -28,65 +28,36 @@ struct FeatureGuideView: View {
             Divider()
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("先写在这里，稍后再决定它去哪里")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("灵感、视频笔记、微信或邮件草稿、临时待办，以及稍后会用到的网址或账号名，都可以先放进草稿本。有些内容过两天就没用了，有些会在打磨后正式发出，还有一些会转入笔记软件或知识库。")
-                            .font(.system(size: 12))
-                        Text("示例草稿会明确标注“示例”，可以随时一键移除。数据目前没有加密，请勿保存密码、长期有效的 API Key、私钥或恢复码。")
-                            .font(.system(size: 11))
-                            .foregroundStyle(.secondary)
-                    }
-                    .padding(14)
-                    .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 17) {
+                    Text("灵感、视频笔记、微信或邮件草稿、临时待办、稍后要用的网址……先记在这里。过几天没用了可以清理；值得留下的，再存档或转入你的笔记软件。")
+                        .font(.system(size: 12))
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.primary.opacity(0.045), in: RoundedRectangle(cornerRadius: 10))
 
                     guideSection(
-                        title: "1. 输入与划定",
-                        example: "在最上方输入一段文字，按 ⌘↩︎。下一条内容可以与它毫不相干。",
-                        result: "这段文字成为一条可以单独管理的草稿；新的空白输入区仍留在最上方，不需要新建文件或标签页。"
+                        title: "写下来，划成一条",
+                        body: "在最上方直接输入，按 ⌘↩︎ 划定为一条草稿。新输入区仍在顶部，接着写另一件事即可；内容会自动保存。"
                     )
 
                     guideSection(
-                        title: "2. 彩色标签与筛选",
-                        example: "点击分隔线左侧的彩色标签换色；将鼠标停在标签上查看时间信息。",
-                        result: "颜色用于分类，标签会在创建后的 7 天内连续褪色；悬停时显示创建时间、最后更新时间、未编辑天数和进入清理台的时间。搜索栏还可以只看某一种颜色。"
+                        title: "修改和复制",
+                        body: "点击已划定草稿的正文即可继续编辑。可以直接写 Markdown，例如 # 标题、*斜体*、**重点** 和列表；离开编辑时显示排版。悬停在草稿分隔线上，点复制按钮可复制整条原文，保留 Markdown 符号和换行。"
                     )
 
                     guideSection(
-                        title: "3. Markdown",
-                        example: "直接写 # 标题、**重点** 或列表，按 ⌘↩︎ 划定草稿。",
-                        result: "自动呈现 Markdown；点击正文编辑原文，离开编辑后恢复预览。复制整条保留语法和换行。普通换行保留，图片和 HTML 以文字呈现。"
+                        title: "分类和查找",
+                        body: "点击分隔线左侧的标签换色；标签会随创建时间逐渐褪色，悬停可查看创建、更新和待处理时间。按 ⌘F 搜索，也可以只看某种颜色的草稿。"
                     )
 
                     guideSection(
-                        title: "4. 七天生命周期",
-                        example: "新草稿最后修改时间为 9 月 20 日 14:00。",
-                        result: "它将在 9 月 27 日 14:00 进入清理台。再次编辑正文，会从新的修改时间重新计算 7 天，但标签不会重新变鲜艳，因为褪色只看创建时间。"
+                        title: "决定去留",
+                        body: "默认在最后编辑 7 天后标记为“待处理”，进入清理台，但不会自动删除。你可以再放几天、固定常用内容、存档留存，或移入回收站；回收站里的内容仍可恢复。固定后不再到期。"
                     )
 
                     guideSection(
-                        title: "5. 待处理与延期",
-                        example: "草稿到期后标记为“待处理”。在清理台点击“再放 7 天”。",
-                        result: "它立即离开清理台；从点击时刻起再过 7 天，才会重新进入清理台。系统不会自动删除。"
-                    )
-
-                    guideSection(
-                        title: "6. 固定与存档",
-                        example: "固定适合仍需经常使用的内容；存档适合已经完成但值得长期保留的内容。",
-                        result: "固定草稿留在主页且不再到期；存档草稿进入存档区，并可单独命名和搜索。"
-                    )
-
-                    guideSection(
-                        title: "7. 回收站",
-                        example: "点击草稿的删除按钮。",
-                        result: "草稿先进入回收站，可以撤销或恢复；只有再次确认永久删除才真正移除。"
-                    )
-
-                    guideSection(
-                        title: "8. 搜索、导出与备份",
-                        example: "按 ⌘F 搜索；点击右上角 … 导出或打开备份文件夹。",
-                        result: "支持当前区域的正文/存档名称搜索，以及 TXT、Markdown、完整 JSON 导出。"
+                        title: "数据与设置",
+                        body: "草稿只保存在本机。右上角 … 可导出文本或完整备份；在“设置”中可调整清理周期、自动备份和窗口置顶。“草稿本 → 检查更新…”仅在你点击时访问 GitHub。当前数据未加密，请勿保存密码、私钥或长期有效的密钥。"
                     )
                 }
                 .padding(20)
@@ -111,22 +82,18 @@ struct FeatureGuideView: View {
             }
             .padding(16)
         }
-        .frame(width: 520, height: 640)
+        .frame(width: 520, height: 610)
     }
 
     private func guideSection(
         title: String,
-        example: String,
-        result: String
+        body: String
     ) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.system(size: 13, weight: .semibold))
-            Text(example)
+            Text(body)
                 .font(.system(size: 12))
-            Text("实际效果：\(result)")
-                .font(.system(size: 12))
-                .foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

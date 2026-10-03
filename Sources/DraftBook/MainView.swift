@@ -37,6 +37,7 @@ struct MainView: View {
     @State private var searchQuery = ""
     @State private var selectedColor: DraftColor?
     @State private var showingFeatureGuide = false
+    @State private var showingUpdateCheck = false
     @State private var now = Date()
     @FocusState private var searchFocused: Bool
 
@@ -95,12 +96,18 @@ struct MainView: View {
         .onReceive(NotificationCenter.default.publisher(for: .draftBookShowGuide)) { _ in
             showingFeatureGuide = true
         }
+        .onReceive(NotificationCenter.default.publisher(for: .draftBookCheckForUpdates)) { _ in
+            showingUpdateCheck = true
+        }
         .onReceive(lifecycleTimer) { date in
             now = date
         }
         .sheet(isPresented: $showingFeatureGuide) {
             FeatureGuideView()
                 .environmentObject(store)
+        }
+        .sheet(isPresented: $showingUpdateCheck) {
+            UpdateCheckView()
         }
     }
 
@@ -382,7 +389,7 @@ struct MainView: View {
 
             Divider()
 
-            Button("功能示例与说明…") {
+            Button("使用说明与示例…") {
                 showingFeatureGuide = true
             }
 

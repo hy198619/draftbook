@@ -12,14 +12,14 @@
 
 有些内容不值得单独建文件，或者暂时不知道该存在哪里。长期记在 DraftBook 里，也都没问题。
 
-> 当前为 `0.9.4 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
+> 当前为 `0.9.5 Public Beta`。安装包尚未使用 Apple Developer ID 签名，也未经过 Apple 公证。请先阅读[首次打开说明](docs/INSTALL.md)。
 
 ## 下载
 
 前往 [GitHub Releases](https://github.com/hy198619/draftbook/releases) 下载最新公开测试版：
 
 ```text
-DraftBook-v0.9.4-macOS-unsigned.dmg
+DraftBook-v0.9.5-macOS-unsigned.dmg
 ```
 
 系统要求：macOS 14 Sonoma 或更高版本，支持 Apple Silicon 与 Intel Mac。
@@ -40,8 +40,9 @@ DraftBook-v0.9.4-macOS-unsigned.dmg
 - 回收站支持恢复和永久删除；
 - TXT、Markdown、完整 JSON 导出；
 - 每日自动备份，支持从完整备份恢复；
+- 手动检查 GitHub 新版本，下载并校验安装包后打开 DMG；
 - 可调默认清理周期、备份策略和窗口置顶；
-- 完全本地运行，不需要账号，没有网络请求。
+- 草稿完全保存在本机，不需要账号；只有主动检查更新时才访问 GitHub。
 
 ## 基本使用
 
@@ -52,6 +53,7 @@ DraftBook-v0.9.4-macOS-unsigned.dmg
 5. 点击草稿正文编辑；鼠标悬停在草稿上方，可复制、固定、存档或删除；
 6. 到期内容会显示“待处理”，在清理台决定它的去留；
 7. 按 `⌘,` 打开设置。
+8. 在“草稿本 → 检查更新…”手动查询新版本；安装仍需将新版 App 拖入“应用程序”并替换旧版。
 
 软件内置“功能示例与说明”，可以一键添加七种状态的示例草稿，实际体验清理、存档和回收流程。
 
@@ -63,7 +65,7 @@ DraftBook-v0.9.4-macOS-unsigned.dmg
 ~/Library/Application Support/com.yangyuxuan.DraftBook/
 ```
 
-当前版本不包含账号、云同步、分析统计、广告 SDK 或网络上传。草稿文件目前没有加密，因此不要把它当作密码管理器，也不要保存密码、长期有效的 API Key、私钥或恢复码。详见[隐私说明](docs/PRIVACY.md)。
+当前版本不包含账号、云同步、分析统计、广告 SDK 或草稿上传。只有主动检查和下载更新时才访问 GitHub。草稿文件目前没有加密，因此不要把它当作密码管理器，也不要保存密码、长期有效的 API Key、私钥或恢复码。详见[隐私说明](docs/PRIVACY.md)。
 
 ## 反馈
 
@@ -95,7 +97,7 @@ dist/草稿本.app
 当前版本已经覆盖核心使用闭环，但仍属于公开测试：
 
 - 尚未使用 Developer ID 签名和 Apple 公证；
-- 暂无云同步、全局呼出快捷键和自动更新；
+- 暂无云同步、全局呼出快捷键和自动安装更新；
 - 数据尚未加密；
 - 目前最低支持 macOS 14。
 

@@ -25,10 +25,11 @@ struct MarkdownDraftPreview: View {
     private func block(_ node: any Markup) -> AnyView {
         switch node {
         case let heading as Heading:
-            return AnyView(SwiftUI.Text(inline(heading))
-                .font(.system(size: CGFloat(max(15, 26 - heading.level * 2)), weight: .bold)))
+            let size = CGFloat(max(15, 26 - heading.level * 2))
+            return AnyView(SwiftUI.Text(styledInline(heading, size: size, weight: .bold))
+                .font(.system(size: size, weight: .bold)))
         case let paragraph as Paragraph:
-            return AnyView(SwiftUI.Text(inline(paragraph)))
+            return AnyView(SwiftUI.Text(styledInline(paragraph)))
         case let code as CodeBlock:
             return AnyView(SwiftUI.Text(code.code.hasSuffix("\n") ? String(code.code.dropLast()) : code.code)
                 .font(.system(size: 13, design: .monospaced))
@@ -50,7 +51,7 @@ struct MarkdownDraftPreview: View {
                     let cells = Array(rows[index].children)
                     GridRow {
                         ForEach(cells.indices, id: \.self) { cell in
-                            SwiftUI.Text(inline(cells[cell]))
+                            SwiftUI.Text(styledInline(cells[cell], weight: index == 0 ? .semibold : .regular))
                                 .fontWeight(index == 0 ? .semibold : .regular)
                         }
                     }
@@ -83,6 +84,29 @@ struct MarkdownDraftPreview: View {
             return checkbox == .checked ? "☑" : "☐"
         }
         return start.map { "\($0 + index)." } ?? "•"
+    }
+
+    // SwiftUI does not reliably turn presentation intent into a visible italic
+    // font once a parent view supplies its own font. Give emphasized runs an
+    // explicit font while leaving plain text and inline code unchanged.
+    func styledInline(
+        _ node: any Markup,
+        size: CGFloat = 14,
+        weight: SwiftUI.Font.Weight = .regular
+    ) -> AttributedString {
+        var result = inline(node)
+        for run in result.runs {
+            let intent = run.inlinePresentationIntent ?? []
+            guard run.font == nil,
+                  intent.contains(.emphasized) || intent.contains(.stronglyEmphasized) else { continue }
+            var font = SwiftUI.Font.system(
+                size: size,
+                weight: intent.contains(.stronglyEmphasized) ? .bold : weight
+            )
+            if intent.contains(.emphasized) { font = font.italic() }
+            result[run.range].font = font
+        }
+        return result
     }
 
     func inline(_ node: any Markup) -> AttributedString {

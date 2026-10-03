@@ -29,6 +29,12 @@ struct DraftBookApp: App {
         .defaultSize(width: 390, height: 720)
         .windowStyle(.hiddenTitleBar)
         .commands {
+            CommandGroup(after: .appInfo) {
+                Button("检查更新…") {
+                    NotificationCenter.default.post(name: .draftBookCheckForUpdates, object: nil)
+                }
+            }
+
             CommandGroup(replacing: .newItem) {
                 Button("划定当前草稿") {
                     store.sealComposer()
@@ -97,7 +103,7 @@ struct DraftBookApp: App {
             }
 
             CommandGroup(replacing: .help) {
-                Button("草稿本使用指南") {
+                Button("草稿本使用说明") {
                     NotificationCenter.default.post(name: .draftBookShowGuide, object: nil)
                 }
 

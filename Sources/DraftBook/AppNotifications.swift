@@ -7,4 +7,5 @@ extension Notification.Name {
     static let draftBookShowArchive = Notification.Name("DraftBook.showArchive")
     static let draftBookShowTrash = Notification.Name("DraftBook.showTrash")
     static let draftBookShowGuide = Notification.Name("DraftBook.showGuide")
+    static let draftBookCheckForUpdates = Notification.Name("DraftBook.checkForUpdates")
 }

@@ -12,19 +12,10 @@ struct MainView: View {
 
         var title: String {
             switch self {
-            case .drafts: "草稿本"
+            case .drafts: "草稿区"
             case .cleanup: "清理台"
             case .archive: "存档区"
             case .trash: "回收站"
-            }
-        }
-
-        var icon: String {
-            switch self {
-            case .drafts: "square.and.pencil"
-            case .cleanup: "clock.badge.exclamationmark"
-            case .archive: "archivebox"
-            case .trash: "trash"
             }
         }
     }
@@ -36,6 +27,7 @@ struct MainView: View {
     @State private var searchVisible = false
     @State private var searchQuery = ""
     @State private var selectedColor: DraftColor?
+    @State private var showingSectionPicker = false
     @State private var showingFeatureGuide = false
     @State private var showingUpdateCheck = false
     @State private var now = Date()
@@ -113,19 +105,20 @@ struct MainView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Image(systemName: section.icon)
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(.secondary)
-
-            Text(section.title)
-                .font(.system(size: 14, weight: .semibold))
+            sectionMenu
 
             Spacer()
 
             if section == .drafts && !searchVisible {
-                Text("⌘↩︎ 划定")
+                Text("写完一条，记得⌘+↵划定草稿")
                     .font(.system(size: 11, design: .rounded))
                     .foregroundStyle(.tertiary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+
+            if section == .archive && !searchVisible {
+                colorFilterMenu
             }
 
             Button(action: toggleSearch) {
@@ -135,7 +128,6 @@ struct MainView: View {
             .buttonStyle(.plain)
             .help(searchVisible ? "关闭搜索" : "搜索草稿（⌘F）")
 
-            sectionMenu
             exportMenu
 
             Button {
@@ -154,48 +146,77 @@ struct MainView: View {
     }
 
     private var sectionMenu: some View {
-        Menu {
-            Button("草稿") {
-                selectSection(.drafts)
-            }
-            Button(cleanupMenuTitle) {
-                selectSection(.cleanup)
-            }
-            Button("存档区") {
-                selectSection(.archive)
-            }
-            Button(trashMenuTitle) {
-                selectSection(.trash)
-            }
-
-            if store.canUndoLastDelete {
-                Divider()
-                Button("撤销最近删除") {
-                    store.undoLastDelete()
-                }
-            }
+        Button {
+            showingSectionPicker.toggle()
         } label: {
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "tray.2")
-                    .font(.system(size: 12, weight: .medium))
+            HStack(spacing: 6) {
+                Text(section.title)
+                    .font(.system(size: 14, weight: .semibold))
 
                 if !store.dueDrafts(referenceDate: now).isEmpty {
                     Circle()
                         .fill(Color.orange)
                         .frame(width: 6, height: 6)
-                        .offset(x: 3, y: -2)
                 } else if !store.trashedDrafts.isEmpty {
                     Circle()
                         .fill(Color.secondary)
                         .frame(width: 6, height: 6)
-                        .offset(x: 3, y: -2)
+                }
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .semibold))
+                    .foregroundStyle(.secondary)
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .fixedSize()
+        .help("切换草稿区、清理台、存档区和回收站")
+        .popover(isPresented: $showingSectionPicker, arrowEdge: .bottom) {
+            VStack(alignment: .leading, spacing: 2) {
+                sectionChoice(.drafts, title: "草稿区")
+                sectionChoice(.cleanup, title: cleanupMenuTitle)
+                sectionChoice(.archive, title: "存档区")
+                sectionChoice(.trash, title: trashMenuTitle)
+
+                if store.canUndoLastDelete {
+                    Divider().padding(.vertical, 3)
+                    Button("撤销最近删除") {
+                        store.undoLastDelete()
+                        showingSectionPicker = false
+                    }
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
                 }
             }
+            .font(.system(size: 12))
+            .padding(8)
+            .frame(width: 172)
         }
-        .menuStyle(.borderlessButton)
-        .menuIndicator(.hidden)
-        .fixedSize()
-        .help("草稿区、清理台、存档与回收站")
+    }
+
+    private func sectionChoice(_ choice: Section, title: String) -> some View {
+        Button {
+            showingSectionPicker = false
+            selectSection(choice)
+        } label: {
+            HStack {
+                Text(title)
+                Spacer()
+                if section == choice {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .contentShape(Rectangle())
+            .background(section == choice ? Color.accentColor.opacity(0.08) : Color.clear,
+                        in: RoundedRectangle(cornerRadius: 5))
+        }
+        .buttonStyle(.plain)
     }
 
     private var cleanupMenuTitle: String {
@@ -322,7 +343,7 @@ struct MainView: View {
             Button {
                 selectedColor = nil
             } label: {
-                Label("全部颜色", systemImage: selectedColor == nil ? "checkmark" : "circle")
+                Label("全部标签", systemImage: selectedColor == nil ? "checkmark" : "circle")
             }
 
             Divider()
@@ -332,7 +353,7 @@ struct MainView: View {
                     selectedColor = color
                 } label: {
                     Label(
-                        color.displayName,
+                        store.labelName(for: color),
                         systemImage: selectedColor == color ? "checkmark.circle.fill" : "circle.fill"
                     )
                 }
@@ -345,7 +366,7 @@ struct MainView: View {
         .menuStyle(.borderlessButton)
         .menuIndicator(.hidden)
         .fixedSize()
-        .help(selectedColor.map { "只看\($0.displayName)标签" } ?? "按颜色标签筛选")
+        .help(selectedColor.map { "只看\(store.labelName(for: $0))" } ?? "按内容标签筛选")
     }
 
     private var isFiltering: Bool {

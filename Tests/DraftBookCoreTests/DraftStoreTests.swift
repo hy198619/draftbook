@@ -139,7 +139,7 @@ final class DraftStoreTests: XCTestCase {
         XCTAssertFalse(store.exportPlainText().contains("删除内容"))
 
         let object = try JSONSerialization.jsonObject(with: store.fullBackupData()) as? [String: Any]
-        XCTAssertEqual(object?["schemaVersion"] as? Int, 4)
+        XCTAssertEqual(object?["schemaVersion"] as? Int, 5)
     }
 
     func testFlushCreatesAutomaticBackup() throws {
@@ -198,6 +198,7 @@ final class DraftStoreTests: XCTestCase {
         XCTAssertEqual(store.orderedDrafts.first?.state, .active)
         XCTAssertEqual(store.orderedDrafts.first?.reviewIntervalDays, 7)
         XCTAssertNotNil(store.orderedDrafts.first?.reviewAt)
+        XCTAssertEqual(store.labelName(for: .blue), "分类2")
     }
 
     func testNewDraftBecomesDueSevenDaysAfterCreation() {
@@ -319,38 +320,24 @@ final class DraftStoreTests: XCTestCase {
         )
     }
 
-    func testTagFadeUsesCreationTimeContinuously() {
+    func testTagFadeUsesFourCreationAgeStages() {
         let createdAt = Date(timeIntervalSince1970: 1_000)
-
-        XCTAssertEqual(
-            DraftTiming.tagOpacity(createdAt: createdAt, referenceDate: createdAt),
-            1,
-            accuracy: 0.0001
-        )
-        XCTAssertEqual(
-            DraftTiming.tagOpacity(
-                createdAt: createdAt,
-                referenceDate: createdAt.addingTimeInterval(3.5 * 86_400)
-            ),
-            0.72,
-            accuracy: 0.0001
-        )
-        XCTAssertEqual(
-            DraftTiming.tagOpacity(
-                createdAt: createdAt,
-                referenceDate: createdAt.addingTimeInterval(7 * 86_400)
-            ),
-            0.44,
-            accuracy: 0.0001
-        )
-        XCTAssertEqual(
-            DraftTiming.tagSaturation(
-                createdAt: createdAt,
-                referenceDate: createdAt.addingTimeInterval(14 * 86_400)
-            ),
-            0.55,
-            accuracy: 0.0001
-        )
+        let ages: [(Double, DraftTiming.TagAgeStage, Double)] = [
+            (0, .fresh, 1),
+            (4.99, .fresh, 1),
+            (5, .fiveDays, 0.86),
+            (7, .sevenDays, 0.73),
+            (30, .thirtyDays, 0.60)
+        ]
+        for (days, stage, saturation) in ages {
+            let date = createdAt.addingTimeInterval(days * 86_400)
+            XCTAssertEqual(DraftTiming.tagAgeStage(createdAt: createdAt, referenceDate: date), stage)
+            XCTAssertEqual(
+                DraftTiming.tagSaturation(createdAt: createdAt, referenceDate: date),
+                saturation,
+                accuracy: 0.0001
+            )
+        }
     }
 
     func testEditingRestartsCleanupWithoutResettingCreationFade() {
@@ -370,8 +357,8 @@ final class DraftStoreTests: XCTestCase {
             editedAt.addingTimeInterval(7 * 86_400)
         )
         XCTAssertEqual(
-            DraftTiming.tagOpacity(createdAt: edited.createdAt, referenceDate: editedAt),
-            0.44,
+            DraftTiming.tagSaturation(createdAt: edited.createdAt, referenceDate: editedAt),
+            0.73,
             accuracy: 0.0001
         )
     }
@@ -510,6 +497,110 @@ final class DraftStoreTests: XCTestCase {
             store.drafts(in: .active, matching: "客户", color: .yellow).map(\.id),
             [yellow.id]
         )
+    }
+
+    func testCustomLabelNamesPersistWithoutRestartingCleanup() throws {
+        let store = DraftStore(dataDirectory: directory)
+        let createdAt = Date(timeIntervalSince1970: 1_000)
+        store.composer = "客户邮件"
+        let draft = store.sealComposer(now: createdAt)!
+        store.setColor(id: draft.id, color: .blue)
+        let before = store.draft(withID: draft.id)!
+
+        try store.setLabelNames([.blue: "对外文字", .gray: "试图改名"])
+
+        XCTAssertEqual(store.labelName(for: .blue), "对外文字")
+        XCTAssertEqual(store.labelName(for: .gray), "未分类")
+        XCTAssertEqual(store.draft(withID: draft.id)?.updatedAt, before.updatedAt)
+        XCTAssertEqual(store.draft(withID: draft.id)?.reviewAt, before.reviewAt)
+        XCTAssertEqual(store.dueDrafts(referenceDate: createdAt.addingTimeInterval(8 * 86_400)).map(\.id), [draft.id])
+
+        let restored = DraftStore(dataDirectory: directory)
+        XCTAssertEqual(restored.labelName(for: .blue), "对外文字")
+        XCTAssertEqual(restored.draft(withID: draft.id)?.reviewAt, before.reviewAt)
+    }
+
+    func testUnconfiguredColorLabelsUseNumberedCategories() {
+        let store = DraftStore(dataDirectory: directory)
+        XCTAssertEqual(DraftColor.allCases.map(store.labelName(for:)), [
+            "未分类", "分类1", "分类2", "分类3", "分类4", "分类5"
+        ])
+    }
+
+    func testArchivedDraftKeepsOrChangesSharedLabelAndCanBeFiltered() throws {
+        let store = DraftStore(dataDirectory: directory)
+        try store.setLabelNames([.blue: "灵感", .green: "资料"])
+        store.composer = "稍后保留的资料"
+        let draft = store.sealComposer(now: Date(timeIntervalSince1970: 1_000))!
+        store.setColor(id: draft.id, color: .blue)
+
+        store.archive(id: draft.id, title: "参考资料", color: .green)
+
+        XCTAssertEqual(store.archivedDrafts.first?.color, .green)
+        XCTAssertEqual(store.drafts(in: .archived, matching: "", color: .green).map(\.id), [draft.id])
+        XCTAssertTrue(store.drafts(in: .archived, matching: "", color: .blue).isEmpty)
+        XCTAssertTrue(store.dueDrafts(referenceDate: .distantFuture).isEmpty)
+        XCTAssertEqual(store.labelName(for: .green), "资料")
+
+        let archivedAt = store.archivedDrafts.first?.archivedAt
+        let updatedAt = store.archivedDrafts.first?.updatedAt
+        store.setColor(id: draft.id, color: .blue)
+        XCTAssertEqual(store.archivedDrafts.first?.color, .blue)
+        XCTAssertEqual(store.archivedDrafts.first?.archivedAt, archivedAt)
+        XCTAssertEqual(store.archivedDrafts.first?.updatedAt, updatedAt)
+    }
+
+    func testArchivedDraftBodyAndTitleRemainEditableWithoutRestartingCleanup() {
+        let store = DraftStore(dataDirectory: directory)
+        let createdAt = Date(timeIntervalSince1970: 1_000)
+        let archivedAt = createdAt.addingTimeInterval(86_400)
+        let editedAt = archivedAt.addingTimeInterval(86_400)
+        store.composer = "原始正文"
+        let draft = store.sealComposer(now: createdAt)!
+        store.archive(id: draft.id, title: "旧名称", now: archivedAt)
+
+        store.updateContent(id: draft.id, content: "更新后的存档正文", now: editedAt)
+        store.renameArchivedDraft(id: draft.id, title: "新名称")
+
+        let edited = store.draft(withID: draft.id)!
+        XCTAssertEqual(edited.state, .archived)
+        XCTAssertEqual(edited.content, "更新后的存档正文")
+        XCTAssertEqual(edited.displayTitle, "新名称")
+        XCTAssertEqual(edited.createdAt, createdAt)
+        XCTAssertEqual(edited.updatedAt, editedAt)
+        XCTAssertEqual(edited.archivedAt, archivedAt)
+        XCTAssertNil(edited.reviewAt)
+        XCTAssertTrue(store.dueDrafts(referenceDate: .distantFuture).isEmpty)
+
+        store.flush()
+        let restored = DraftStore(dataDirectory: directory)
+        XCTAssertEqual(restored.archivedDrafts.first?.content, "更新后的存档正文")
+        XCTAssertEqual(restored.archivedDrafts.first?.displayTitle, "新名称")
+    }
+
+    func testFullBackupRestoresLabelNames() throws {
+        let source = DraftStore(dataDirectory: directory)
+        try source.setLabelNames([.yellow: "灵感"])
+        source.composer = "一条灵感"
+        let draft = source.sealComposer()!
+        source.setColor(id: draft.id, color: .yellow)
+        let backup = try source.fullBackupData()
+        let object = try JSONSerialization.jsonObject(with: backup) as? [String: Any]
+        XCTAssertEqual((object?["labelNames"] as? [String: String])?["yellow"], "灵感")
+
+        let destination = directory.appendingPathComponent("Restored", isDirectory: true)
+        let restored = DraftStore(dataDirectory: destination)
+        try restored.restoreFullBackupData(backup)
+        XCTAssertEqual(restored.labelName(for: .yellow), "灵感")
+        XCTAssertEqual(restored.drafts.first?.id, draft.id)
+    }
+
+    func testDuplicateLabelNamesAreRejectedWithoutChangingSavedNames() throws {
+        let store = DraftStore(dataDirectory: directory)
+        try store.setLabelNames([.blue: "资料"])
+        XCTAssertThrowsError(try store.setLabelNames([.blue: "资料", .yellow: "资料"]))
+        XCTAssertEqual(store.labelName(for: .blue), "资料")
+        XCTAssertEqual(store.labelName(for: .yellow), "分类1")
     }
 
     func testSamplesCoverStatesAndCanBeRemovedWithoutDeletingRealDrafts() {

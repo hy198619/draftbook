@@ -14,6 +14,11 @@ struct CleanupDraftView: View {
                     .fill(draft.color.swiftUIColor.opacity(0.44))
                     .frame(width: 26, height: 8)
 
+                Text(store.labelName(for: draft.color))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
                 Rectangle()
                     .fill(Color.orange.opacity(0.35))
                     .frame(height: 1)
@@ -67,8 +72,8 @@ struct CleanupDraftView: View {
         }
         .padding(.bottom, 16)
         .sheet(isPresented: $showingArchiveSheet) {
-            ArchiveDraftSheet(draft: draft) { title in
-                store.archive(id: draft.id, title: title)
+            ArchiveDraftSheet(draft: draft) { title, color in
+                store.archive(id: draft.id, title: title, color: color)
             }
         }
     }

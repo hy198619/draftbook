@@ -14,6 +14,11 @@ struct TrashDraftView: View {
                     .fill(draft.color.swiftUIColor.opacity(0.48))
                     .frame(width: 26, height: 8)
 
+                Text(store.labelName(for: draft.color))
+                    .font(.system(size: 10))
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+
                 Rectangle()
                     .fill(Color.secondary.opacity(0.18))
                     .frame(height: 1)

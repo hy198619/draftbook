@@ -3,16 +3,19 @@ import SwiftUI
 
 struct ArchiveDraftSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject private var store: DraftStore
     @FocusState private var titleFocused: Bool
     @State private var title: String
+    @State private var color: DraftColor
 
     let draft: Draft
-    let onArchive: (String) -> Void
+    let onArchive: (String, DraftColor) -> Void
 
-    init(draft: Draft, onArchive: @escaping (String) -> Void) {
+    init(draft: Draft, onArchive: @escaping (String, DraftColor) -> Void) {
         self.draft = draft
         self.onArchive = onArchive
         _title = State(initialValue: draft.displayTitle)
+        _color = State(initialValue: draft.color)
     }
 
     var body: some View {
@@ -27,6 +30,13 @@ struct ArchiveDraftSheet: View {
             TextField("草稿名称", text: $title)
                 .textFieldStyle(.roundedBorder)
                 .focused($titleFocused)
+
+            Picker("内容标签", selection: $color) {
+                ForEach(DraftColor.allCases, id: \.self) { option in
+                    Text(store.labelName(for: option)).tag(option)
+                }
+            }
+            .help("默认沿用原标签，也可以在存档时更换")
 
             Text(draft.content)
                 .font(.system(size: 12))
@@ -44,7 +54,7 @@ struct ArchiveDraftSheet: View {
                 .keyboardShortcut(.cancelAction)
 
                 Button("存档") {
-                    onArchive(title)
+                    onArchive(title, color)
                     dismiss()
                 }
                 .keyboardShortcut(.defaultAction)

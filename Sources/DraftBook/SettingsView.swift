@@ -4,6 +4,7 @@ import SwiftUI
 
 enum AppPreferenceKeys {
     static let keepWindowOnTop = "keepWindowOnTop"
+    static let settingsSelectedTab = "settingsSelectedTab"
     static let defaultReviewDays = "defaultReviewDays"
     static let automaticBackupsEnabled = "automaticBackupsEnabled"
     static let backupRetentionCount = "backupRetentionCount"
@@ -12,24 +13,33 @@ enum AppPreferenceKeys {
 struct SettingsView: View {
     @EnvironmentObject private var store: DraftStore
 
+    @AppStorage(AppPreferenceKeys.settingsSelectedTab) private var selectedTab = "general"
     @AppStorage(AppPreferenceKeys.keepWindowOnTop) private var keepWindowOnTop = true
     @AppStorage(AppPreferenceKeys.defaultReviewDays) private var defaultReviewDays = 7
     @AppStorage(AppPreferenceKeys.automaticBackupsEnabled) private var automaticBackupsEnabled = true
     @AppStorage(AppPreferenceKeys.backupRetentionCount) private var backupRetentionCount = 14
 
     var body: some View {
-        TabView {
+        TabView(selection: $selectedTab) {
             generalSettings
                 .tabItem {
                     Label("通用", systemImage: "gearshape")
                 }
+                .tag("general")
+
+            LabelSettingsView()
+                .tabItem {
+                    Label("标签", systemImage: "tag")
+                }
+                .tag("labels")
 
             dataSettings
                 .tabItem {
                     Label("数据", systemImage: "externaldrive")
                 }
+                .tag("data")
         }
-        .frame(width: 480, height: 330)
+        .frame(width: 480, height: 380)
         .onAppear(perform: synchronizeStorePreferences)
         .onChange(of: defaultReviewDays) { _, _ in synchronizeStorePreferences() }
         .onChange(of: automaticBackupsEnabled) { _, _ in synchronizeStorePreferences() }
@@ -97,5 +107,111 @@ struct SettingsView: View {
             automaticBackupsEnabled: automaticBackupsEnabled,
             backupRetentionCount: backupRetentionCount
         )
+    }
+}
+
+private struct LabelSettingsView: View {
+    @EnvironmentObject private var store: DraftStore
+    @State private var names: [DraftColor: String] = [:]
+    @State private var feedback: String?
+    @State private var hasError = false
+    @State private var hasSaved = false
+    @FocusState private var focusedColor: DraftColor?
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Form {
+                Section("自定义分类名称") {
+                    HStack(spacing: 10) {
+                        colorMark(.gray)
+                        Text("未分类")
+                        Spacer()
+                        Text("固定名称")
+                            .foregroundStyle(.secondary)
+                    }
+
+                    ForEach(DraftColor.allCases.filter { $0 != .gray }, id: \.self) { color in
+                        HStack(spacing: 10) {
+                            colorMark(color)
+                            Text(color.displayName)
+                                .frame(width: 36, alignment: .leading)
+                            TextField("", text: binding(for: color))
+                                .textFieldStyle(.roundedBorder)
+                                .labelsHidden()
+                                .focused($focusedColor, equals: color)
+                                .accessibilityLabel("\(color.displayName)标签名称")
+                        }
+                    }
+                }
+
+                Section {
+                    Text("分类名同步用于所有区域；不影响清理时间。留空恢复默认名称。")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .formStyle(.grouped)
+
+            HStack {
+                if let feedback {
+                    Text(feedback)
+                        .font(.caption)
+                        .foregroundStyle(hasError ? Color.red : Color.secondary)
+                }
+                Spacer()
+                Button(hasSaved ? "已保存" : "保存名称") {
+                    saveNames()
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(hasSaved)
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 10)
+        }
+        .padding(.top, 4)
+        .onAppear {
+            names = Dictionary(uniqueKeysWithValues: DraftColor.allCases.map { color in
+                (color, store.labelName(for: color))
+            })
+        }
+    }
+
+    private func colorMark(_ color: DraftColor) -> some View {
+        Capsule()
+            .fill(color.swiftUIColor)
+            .frame(width: 24, height: 8)
+    }
+
+    private func binding(for color: DraftColor) -> Binding<String> {
+        Binding(
+            get: { names[color] ?? color.displayName },
+            set: { value in
+                guard names[color] != value else { return }
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                let effectiveName = trimmed.isEmpty ? color.defaultLabelName : trimmed
+                if hasSaved && effectiveName == store.labelName(for: color) { return }
+                names[color] = value
+                feedback = nil
+                hasSaved = false
+            }
+        )
+    }
+
+    private func saveNames() {
+        focusedColor = nil
+        NSApp.keyWindow?.makeFirstResponder(nil)
+        do {
+            try store.setLabelNames(names)
+            names = Dictionary(uniqueKeysWithValues: DraftColor.allCases.map { color in
+                (color, store.labelName(for: color))
+            })
+            feedback = "✓ 已保存到本机"
+            hasError = false
+            hasSaved = true
+        } catch {
+            feedback = error.localizedDescription
+            hasError = true
+            hasSaved = false
+        }
     }
 }

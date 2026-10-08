@@ -4,6 +4,8 @@ import SwiftUI
 
 struct DraftBlockView: View {
     @EnvironmentObject private var store: DraftStore
+    @Environment(\.openSettings) private var openSettings
+    @AppStorage(AppPreferenceKeys.settingsSelectedTab) private var selectedSettingsTab = "general"
 
     let draftID: UUID
 
@@ -44,8 +46,8 @@ struct DraftBlockView: View {
                 if !focused { isEditingMarkdown = false }
             }
             .sheet(isPresented: $showingArchiveSheet) {
-                ArchiveDraftSheet(draft: draft) { title in
-                    store.archive(id: draft.id, title: title)
+                ArchiveDraftSheet(draft: draft) { title, color in
+                    store.archive(id: draft.id, title: title, color: color)
                 }
             }
         }
@@ -59,14 +61,7 @@ struct DraftBlockView: View {
                 ZStack {
                     Color.clear
                     Capsule()
-                        .fill(
-                            tagBaseColor(for: draft)
-                                .opacity(DraftTiming.tagOpacity(
-                                    createdAt: draft.createdAt,
-                                    referenceDate: referenceDate
-                                ))
-                        )
-                        .saturation(DraftTiming.tagSaturation(
+                        .fill(draft.color.agedSwiftUIColor(
                             createdAt: draft.createdAt,
                             referenceDate: referenceDate
                         ))
@@ -170,28 +165,46 @@ struct DraftBlockView: View {
     }
 
     private func colorPicker(_ draft: Draft) -> some View {
-        HStack(spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
             ForEach(DraftColor.allCases, id: \.self) { color in
                 Button {
                     store.setColor(id: draft.id, color: color)
                     showingColors = false
                 } label: {
-                    Circle()
-                        .fill(color.swiftUIColor)
-                        .frame(width: 18, height: 18)
-                        .overlay {
-                            if draft.color == color {
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 8, weight: .bold))
-                                    .foregroundStyle(.white)
-                            }
+                    HStack(spacing: 9) {
+                        Capsule()
+                            .fill(color.swiftUIColor)
+                            .frame(width: 26, height: 8)
+                        Text(store.labelName(for: color))
+                            .font(.system(size: 12))
+                        Spacer(minLength: 12)
+                        if draft.color == color {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .semibold))
                         }
+                    }
+                    .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .help(color.displayName)
+                .padding(.vertical, 4)
             }
+
+            Divider()
+
+            Button("自定义分类名称…") {
+                showingColors = false
+                selectedSettingsTab = "labels"
+                DispatchQueue.main.async {
+                    openSettings()
+                }
+            }
+            .buttonStyle(.plain)
+            .font(.system(size: 11))
+            .foregroundStyle(.secondary)
+            .padding(.top, 2)
         }
         .padding(12)
+        .frame(width: 172)
     }
 
     private func markdownPreview(_ draft: Draft) -> some View {
@@ -219,10 +232,6 @@ struct DraftBlockView: View {
             get: { store.draft(withID: draftID)?.content ?? "" },
             set: { store.updateContent(id: draftID, content: $0) }
         )
-    }
-
-    private func tagBaseColor(for draft: Draft) -> Color {
-        draft.color.swiftUIColor
     }
 
     private func isDue(_ draft: Draft, referenceDate: Date) -> Bool {
@@ -257,7 +266,7 @@ struct DraftBlockView: View {
             referenceDate: referenceDate
         )
 
-        return "创建于 \(created) · 更新于 \(updated)\n\(elapsedText) · \(cleanupText)\n点击更换标签颜色"
+        return "\(store.labelName(for: draft.color)) · 创建于 \(created) · 更新于 \(updated)\n\(elapsedText) · \(cleanupText)\n点击更换标签"
     }
 
     private func formattedDate(_ date: Date, referenceDate: Date) -> String {
@@ -273,14 +282,48 @@ struct DraftBlockView: View {
 }
 
 extension DraftColor {
-    var swiftUIColor: Color {
+    private var nsColor: NSColor {
         switch self {
         case .gray: .black
-        case .yellow: Color(nsColor: .systemYellow)
-        case .blue: Color(nsColor: .systemBlue)
-        case .purple: Color(nsColor: .systemPurple)
-        case .green: Color(nsColor: .systemGreen)
-        case .red: Color(nsColor: .systemRed)
+        case .yellow: .systemYellow
+        case .blue: .systemBlue
+        case .purple: .systemPurple
+        case .green: .systemGreen
+        case .red: .systemRed
         }
+    }
+
+    var swiftUIColor: Color {
+        Color(nsColor: nsColor)
+    }
+
+    func agedSwiftUIColor(createdAt: Date, referenceDate: Date) -> Color {
+        Color(nsColor: agedNSColor(createdAt: createdAt, referenceDate: referenceDate))
+    }
+
+    func agedNSColor(createdAt: Date, referenceDate: Date) -> NSColor {
+        let stage = DraftTiming.tagAgeStage(createdAt: createdAt, referenceDate: referenceDate)
+        if self == .gray {
+            let white: CGFloat = switch stage {
+            case .fresh: 0
+            case .fiveDays: 0.20
+            case .sevenDays: 0.38
+            case .thirtyDays: 0.58
+            }
+            return NSColor(white: white, alpha: 1)
+        }
+
+        guard let resolved = nsColor.usingColorSpace(.deviceRGB) else { return nsColor }
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        resolved.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        return NSColor(
+            deviceHue: hue,
+            saturation: saturation * DraftTiming.tagSaturation(createdAt: createdAt, referenceDate: referenceDate),
+            brightness: brightness,
+            alpha: alpha
+        )
     }
 }

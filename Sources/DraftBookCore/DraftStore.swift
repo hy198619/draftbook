@@ -5,32 +5,41 @@ import Foundation
 public final class DraftStore: ObservableObject {
     public enum StoreError: LocalizedError {
         case unsupportedBackupVersion(Int)
+        case labelNameTooLong
+        case duplicateLabelName(String)
 
         public var errorDescription: String? {
             switch self {
             case let .unsupportedBackupVersion(version):
                 return "这份备份来自更新版本的草稿本（数据版本 \(version)），当前版本无法安全恢复。"
+            case .labelNameTooLong:
+                return "标签名称最多 12 个字。"
+            case let .duplicateLabelName(name):
+                return "“\(name)”已用于其他标签，请换一个名称。"
             }
         }
     }
 
     private struct Snapshot: Codable {
-        static let currentSchemaVersion = 4
+        static let currentSchemaVersion = 5
 
         var schemaVersion: Int
         var composer: String
         var drafts: [Draft]
+        var labelNames: [String: String]
 
-        init(composer: String, drafts: [Draft]) {
+        init(composer: String, drafts: [Draft], labelNames: [String: String]) {
             schemaVersion = Self.currentSchemaVersion
             self.composer = composer
             self.drafts = drafts
+            self.labelNames = labelNames
         }
 
         private enum CodingKeys: String, CodingKey {
             case schemaVersion
             case composer
             case drafts
+            case labelNames
         }
 
         init(from decoder: Decoder) throws {
@@ -38,6 +47,7 @@ public final class DraftStore: ObservableObject {
             schemaVersion = try container.decodeIfPresent(Int.self, forKey: .schemaVersion) ?? 1
             composer = try container.decodeIfPresent(String.self, forKey: .composer) ?? ""
             drafts = try container.decodeIfPresent([Draft].self, forKey: .drafts) ?? []
+            labelNames = try container.decodeIfPresent([String: String].self, forKey: .labelNames) ?? [:]
         }
     }
 
@@ -46,6 +56,7 @@ public final class DraftStore: ObservableObject {
     }
 
     @Published public private(set) var drafts: [Draft] = []
+    @Published public private(set) var labelNames: [String: String] = [:]
     @Published public private(set) var lastSaveError: String?
     @Published public private(set) var deleteNoticeID: UUID?
     @Published public private(set) var canUndoLastDelete = false
@@ -202,6 +213,28 @@ public final class DraftStore: ObservableObject {
         }
     }
 
+    public func labelName(for color: DraftColor) -> String {
+        guard color != .gray else { return color.defaultLabelName }
+        return labelNames[color.rawValue] ?? color.defaultLabelName
+    }
+
+    /// Names belong to stable color slots, not individual drafts. Renaming a
+    /// label therefore updates every view without resetting any cleanup date.
+    public func setLabelNames(_ names: [DraftColor: String]) throws {
+        var result: [String: String] = [:]
+        var used = Set([DraftColor.gray.defaultLabelName])
+        for color in DraftColor.allCases where color != .gray {
+            let input = names[color]?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            let name = input.isEmpty ? color.defaultLabelName : input
+            guard name.count <= 12 else { throw StoreError.labelNameTooLong }
+            let key = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            guard used.insert(key).inserted else { throw StoreError.duplicateLabelName(name) }
+            result[color.rawValue] = name
+        }
+        labelNames = result
+        saveNow()
+    }
+
     public func togglePinned(id: UUID, now: Date = Date()) {
         mutate(id: id) { draft in
             draft.pinned.toggle()
@@ -280,16 +313,25 @@ public final class DraftStore: ObservableObject {
         saveNow()
     }
 
-    public func archive(id: UUID, title: String? = nil, now: Date = Date()) {
+    public func archive(id: UUID, title: String? = nil, color: DraftColor? = nil, now: Date = Date()) {
         mutate(id: id) { draft in
             let trimmed = title?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             draft.title = trimmed.isEmpty ? draft.suggestedTitle : trimmed
+            if let color { draft.color = color }
             draft.state = .archived
             draft.archivedAt = now
             draft.reviewAt = nil
             draft.pinned = false
         }
         saveNow()
+    }
+
+    public func renameArchivedDraft(id: UUID, title: String) {
+        guard draft(withID: id)?.state == .archived else { return }
+        mutate(id: id) { draft in
+            let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            draft.title = trimmed.isEmpty ? draft.suggestedTitle : trimmed
+        }
     }
 
     public func restoreFromArchive(id: UUID, now: Date = Date()) {
@@ -405,7 +447,7 @@ public final class DraftStore: ObservableObject {
     }
 
     public func fullBackupData() throws -> Data {
-        let snapshot = Snapshot(composer: composer, drafts: drafts)
+        let snapshot = Snapshot(composer: composer, drafts: drafts, labelNames: labelNames)
         return try JSONEncoder.draftBook.encode(snapshot)
     }
 
@@ -431,6 +473,7 @@ public final class DraftStore: ObservableObject {
         isLoading = true
         composer = snapshot.composer
         drafts = snapshot.drafts
+        labelNames = snapshot.labelNames
         isLoading = false
         saveNow()
     }
@@ -457,6 +500,7 @@ public final class DraftStore: ObservableObject {
             let snapshot = try JSONDecoder.draftBook.decode(Snapshot.self, from: data)
             composer = snapshot.composer
             drafts = snapshot.drafts
+            labelNames = snapshot.labelNames
             if snapshot.schemaVersion < 3 {
                 migrateLifecycleFromEarlierVersion(referenceDate: Date())
             }
@@ -487,7 +531,7 @@ public final class DraftStore: ObservableObject {
                 at: fileURL.deletingLastPathComponent(),
                 withIntermediateDirectories: true
             )
-            let snapshot = Snapshot(composer: composer, drafts: drafts)
+            let snapshot = Snapshot(composer: composer, drafts: drafts, labelNames: labelNames)
             let data = try JSONEncoder.draftBook.encode(snapshot)
             try data.write(to: fileURL, options: [.atomic])
             lastSaveError = nil
@@ -587,6 +631,7 @@ public final class DraftStore: ObservableObject {
             }
             composer = snapshot.composer
             drafts = snapshot.drafts
+            labelNames = snapshot.labelNames
             return true
         }
         return false

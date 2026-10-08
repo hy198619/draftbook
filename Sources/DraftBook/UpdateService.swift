@@ -95,7 +95,7 @@ enum UpdateService {
     static func latestRelease() async throws -> UpdateRelease {
         var request = URLRequest(url: releasesURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("DraftBook/0.9.5", forHTTPHeaderField: "User-Agent")
+        request.setValue("DraftBook/0.9.6", forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 20
 
         let (data, response) = try await URLSession.shared.data(for: request)

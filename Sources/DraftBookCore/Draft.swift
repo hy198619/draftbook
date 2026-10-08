@@ -18,6 +18,17 @@ public enum DraftColor: String, Codable, CaseIterable, Sendable {
         case .red: "红色"
         }
     }
+
+    public var defaultLabelName: String {
+        switch self {
+        case .gray: "未分类"
+        case .yellow: "分类1"
+        case .blue: "分类2"
+        case .purple: "分类3"
+        case .green: "分类4"
+        case .red: "分类5"
+        }
+    }
 }
 
 public enum DraftState: String, Codable, CaseIterable, Sendable {

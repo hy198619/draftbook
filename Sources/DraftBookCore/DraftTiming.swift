@@ -1,29 +1,36 @@
 import Foundation
 
 public enum DraftTiming {
-    public static let fadeDuration: TimeInterval = 7 * 86_400
-
-    public static func creationAgeProgress(
-        createdAt: Date,
-        referenceDate: Date = Date()
-    ) -> Double {
-        guard fadeDuration > 0 else { return 1 }
-        let age = max(0, referenceDate.timeIntervalSince(createdAt))
-        return min(1, age / fadeDuration)
+    public enum TagAgeStage: Equatable {
+        case fresh
+        case fiveDays
+        case sevenDays
+        case thirtyDays
     }
 
-    public static func tagOpacity(
+    public static func tagAgeStage(
         createdAt: Date,
         referenceDate: Date = Date()
-    ) -> Double {
-        1 - 0.56 * creationAgeProgress(createdAt: createdAt, referenceDate: referenceDate)
+    ) -> TagAgeStage {
+        let age = max(0, referenceDate.timeIntervalSince(createdAt))
+        switch age {
+        case ..<(5 * 86_400): return .fresh
+        case ..<(7 * 86_400): return .fiveDays
+        case ..<(30 * 86_400): return .sevenDays
+        default: return .thirtyDays
+        }
     }
 
     public static func tagSaturation(
         createdAt: Date,
         referenceDate: Date = Date()
     ) -> Double {
-        1 - 0.45 * creationAgeProgress(createdAt: createdAt, referenceDate: referenceDate)
+        switch tagAgeStage(createdAt: createdAt, referenceDate: referenceDate) {
+        case .fresh: 1
+        case .fiveDays: 0.86
+        case .sevenDays: 0.73
+        case .thirtyDays: 0.60
+        }
     }
 
     public static func wholeDaysSinceUpdate(

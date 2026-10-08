@@ -4,6 +4,7 @@ import XCTest
 final class UpdateServiceTests: XCTestCase {
     func testVersionComparisonAndInvalidVersions() {
         XCTAssertTrue(AppVersion("0.9.5")! > AppVersion("0.9.4")!)
+        XCTAssertTrue(AppVersion("0.9.6")! > AppVersion("0.9.5")!)
         XCTAssertTrue(AppVersion("0.10.0")! > AppVersion("0.9.9")!)
         XCTAssertNil(AppVersion("0.9.5-beta"))
         XCTAssertNil(AppVersion("0.9"))

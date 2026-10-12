@@ -1,0 +1,77 @@
+name: Windows CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-ci.yml"
+  pull_request:
+    paths:
+      - "windows/**"
+      - ".github/workflows/windows-ci.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    runs-on: windows-2025
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - run: dotnet test tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj -c Release
+
+  publish:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runtime: win-x64
+            runner: windows-2025
+          - runtime: win-arm64
+            runner: windows-11-arm
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Build WPF app
+        run: dotnet build src/DraftBook.Windows/DraftBook.Windows.csproj -c Release
+      - name: Publish self-contained package
+        shell: pwsh
+        run: >-
+          dotnet publish src/DraftBook.Windows/DraftBook.Windows.csproj
+          -c Release -r ${{ matrix.runtime }} --self-contained true
+          -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false
+          -o artifacts/${{ matrix.runtime }}
+      - name: Smoke-check executable architecture
+        shell: pwsh
+        run: |
+          $exe = Resolve-Path "artifacts/${{ matrix.runtime }}/DraftBook.exe"
+          if (-not (Test-Path $exe)) { throw "DraftBook.exe was not published" }
+          Get-Item $exe | Format-List Name,Length,LastWriteTime
+      - name: Create ZIP and checksum
+        shell: pwsh
+        run: |
+          $name = "DraftBook-Windows-${{ matrix.runtime }}"
+          Compress-Archive -Path "artifacts/${{ matrix.runtime }}/*" -DestinationPath "artifacts/$name.zip"
+          (Get-FileHash "artifacts/$name.zip" -Algorithm SHA256).Hash.ToLowerInvariant() + "  $name.zip" |
+            Set-Content "artifacts/$name.sha256" -Encoding ascii
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DraftBook-Windows-${{ matrix.runtime }}
+          path: |
+            windows/artifacts/DraftBook-Windows-${{ matrix.runtime }}.zip
+            windows/artifacts/DraftBook-Windows-${{ matrix.runtime }}.sha256
+          if-no-files-found: error

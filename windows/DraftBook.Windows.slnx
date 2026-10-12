@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="src/DraftBook.Core/DraftBook.Core.csproj" />
+  <Project Path="src/DraftBook.Windows/DraftBook.Windows.csproj" />
+  <Project Path="tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj" />
+</Solution>

@@ -1,0 +1,64 @@
+{
+  "composer" : "这是一段尚未划定的合成测试文字。\n第二行包含中文、English 和 emoji 📝。",
+  "drafts" : [
+    {
+      "archivedAt" : null,
+      "color" : "blue",
+      "content" : "# 合成草稿\n\n- 保留 Markdown 原文\n- 不含真实用户信息",
+      "createdAt" : "2026-10-01T01:02:03Z",
+      "deletedAt" : null,
+      "id" : "11111111-1111-4111-8111-111111111111",
+      "isSample" : false,
+      "lastCopiedAt" : "2026-10-02T03:04:05Z",
+      "markdownEnabled" : true,
+      "pinned" : true,
+      "reviewAt" : null,
+      "reviewIntervalDays" : null,
+      "state" : "active",
+      "title" : null,
+      "updatedAt" : "2026-10-02T03:04:05Z"
+    },
+    {
+      "archivedAt" : "2026-10-05T08:00:00Z",
+      "color" : "green",
+      "content" : "已经完成的合成存档。",
+      "createdAt" : "2026-09-20T08:00:00Z",
+      "deletedAt" : null,
+      "id" : "22222222-2222-4222-8222-222222222222",
+      "isSample" : false,
+      "lastCopiedAt" : null,
+      "markdownEnabled" : false,
+      "pinned" : false,
+      "reviewAt" : null,
+      "reviewIntervalDays" : null,
+      "state" : "archived",
+      "title" : "合成存档标题",
+      "updatedAt" : "2026-09-25T08:00:00Z"
+    },
+    {
+      "archivedAt" : null,
+      "color" : "gray",
+      "content" : "用于验证恢复流程的合成回收站项目。",
+      "createdAt" : "2026-09-10T09:30:00Z",
+      "deletedAt" : "2026-10-06T09:30:00Z",
+      "id" : "33333333-3333-4333-8333-333333333333",
+      "isSample" : false,
+      "lastCopiedAt" : null,
+      "markdownEnabled" : false,
+      "pinned" : false,
+      "reviewAt" : null,
+      "reviewIntervalDays" : 7,
+      "state" : "trash",
+      "title" : null,
+      "updatedAt" : "2026-09-10T09:30:00Z"
+    }
+  ],
+  "labelNames" : {
+    "blue" : "内容",
+    "green" : "已完成",
+    "purple" : "想法",
+    "red" : "重要",
+    "yellow" : "待办"
+  },
+  "schemaVersion" : 5
+}

@@ -1,0 +1,18 @@
+<Application x:Class="DraftBook.Windows.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             StartupUri="MainWindow.xaml">
+    <Application.Resources>
+        <SolidColorBrush x:Key="WindowBackground" Color="#FFF9F7F2" />
+        <SolidColorBrush x:Key="CardBackground" Color="#FFFFFFFF" />
+        <SolidColorBrush x:Key="MutedForeground" Color="#FF747474" />
+        <Style TargetType="Button">
+            <Setter Property="Padding" Value="9,5" />
+            <Setter Property="Margin" Value="2" />
+        </Style>
+        <Style TargetType="TextBox">
+            <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI" />
+            <Setter Property="FontSize" Value="14" />
+        </Style>
+    </Application.Resources>
+</Application>

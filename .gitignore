@@ -5,6 +5,10 @@ DerivedData/
 dist/
 *.xcuserstate
 xcuserdata/
+**/bin/
+**/obj/
+.vs/
+windows/artifacts/
 Resources/AppIcon-1024.png
 Resources/AppIcon-Drafts-v2-1024.png
 Resources/AppIcon.iconset/

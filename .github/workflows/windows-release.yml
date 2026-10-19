@@ -82,3 +82,26 @@ jobs:
           --tag ${{ steps.version.outputs.tag }}
           --releaseName "DraftBook Windows ${{ steps.version.outputs.value }}"
           --channel win-arm64-beta --outputDir artifacts/releases/win-arm64
+      - name: Upload user-facing installers and checksums
+        if: ${{ inputs.publish }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ steps.version.outputs.value }}"
+          $tag = "${{ steps.version.outputs.tag }}"
+          gh release upload $tag `
+            "artifacts/releases/win-x64/DraftBook-v$version-Windows-x64-Setup.exe" `
+            "artifacts/releases/win-x64/DraftBook-v$version-Windows-x64-Setup.exe.sha256" `
+            "artifacts/releases/win-arm64/DraftBook-v$version-Windows-arm64-Setup.exe" `
+            "artifacts/releases/win-arm64/DraftBook-v$version-Windows-arm64-Setup.exe.sha256" `
+            --clobber
+      - name: Remove internal installer aliases
+        if: ${{ inputs.publish }}
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "${{ steps.version.outputs.tag }}"
+          gh release delete-asset $tag "com.yangyuxuan.DraftBook-win-x64-beta-Setup.exe" --yes
+          gh release delete-asset $tag "com.yangyuxuan.DraftBook-win-arm64-beta-Setup.exe" --yes

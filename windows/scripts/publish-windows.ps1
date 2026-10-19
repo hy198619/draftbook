@@ -57,7 +57,7 @@ dotnet tool run vpk -- `
 
 $generatedSetupPath = Join-Path $releaseDirectory "com.yangyuxuan.DraftBook-$channel-Setup.exe"
 if (-not (Test-Path $generatedSetupPath)) { throw "Missing generated installer: $generatedSetupPath" }
-Move-Item $generatedSetupPath (Join-Path $releaseDirectory $friendlySetupName) -Force
+Copy-Item $generatedSetupPath (Join-Path $releaseDirectory $friendlySetupName) -Force
 $setupPath = Join-Path $releaseDirectory $friendlySetupName
 $hash = (Get-FileHash $setupPath -Algorithm SHA256).Hash.ToLowerInvariant()
 Set-Content -Path "$setupPath.sha256" -Value "$hash  $friendlySetupName" -Encoding ascii

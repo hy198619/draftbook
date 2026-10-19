@@ -7,11 +7,14 @@ param(
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $output = Join-Path $root "artifacts/$Runtime"
-$archiveName = "DraftBook-Windows-$Runtime.zip"
+$projectPath = Join-Path $root "src/DraftBook.Windows/DraftBook.Windows.csproj"
+[xml]$project = Get-Content $projectPath
+$version = [string]$project.Project.PropertyGroup.Version
+$archiveName = "DraftBook-Windows-$version-$Runtime.zip"
 $archive = Join-Path $root "artifacts/$archiveName"
 
 dotnet test (Join-Path $root "tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj") -c $Configuration
-dotnet publish (Join-Path $root "src/DraftBook.Windows/DraftBook.Windows.csproj") `
+dotnet publish $projectPath `
     -c $Configuration -r $Runtime --self-contained true `
     -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false -o $output
 

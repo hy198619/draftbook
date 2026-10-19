@@ -3,6 +3,10 @@ using System.IO;
 using System.Text;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
 using DraftBook.Core;
 using Microsoft.Win32;
 
@@ -16,8 +20,11 @@ public partial class MainWindow : Window
     private readonly DraftRepository repository;
     private readonly DraftBookState state;
     private readonly AutoSaveCoordinator? autoSave;
+    private readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
+    private readonly DispatcherTimer topmostHintTimer = new() { Interval = TimeSpan.FromSeconds(8) };
     private bool closingCompleted;
     private bool initializing = true;
+    private string currentSection = "active";
 
     public MainWindow()
     {
@@ -45,16 +52,33 @@ public partial class MainWindow : Window
         {
             autoSave = new AutoSaveCoordinator(state, repository);
             autoSave.SaveErrorChanged += (_, error) => Dispatcher.BeginInvoke(() =>
-                StatusText.Text = error ?? $"已保存 {DateTime.Now:HH:mm:ss}");
+            {
+                if (error is null)
+                {
+                    HideStatus();
+                }
+                else
+                {
+                    ShowStatus(error, persistent: true);
+                }
+            });
         }
 
-        Width = settings.WindowWidth;
-        Height = settings.WindowHeight;
         Topmost = settings.Topmost;
+        PinButton.IsChecked = Topmost;
         ComposerBox.Text = state.Composer;
+        UpdateComposerPlaceholder();
         PopulateColorFilter();
+        UpdateSectionChrome();
         RefreshDrafts();
         initializing = false;
+        SourceInitialized += (_, _) => WindowPlacementService.Restore(this, settings);
+        statusTimer.Tick += (_, _) => HideStatus();
+        topmostHintTimer.Tick += (_, _) =>
+        {
+            topmostHintTimer.Stop();
+            TopmostHintPopup.IsOpen = false;
+        };
         Loaded += (_, _) =>
         {
             if (fatalLoadError is not null)
@@ -65,6 +89,15 @@ public partial class MainWindow : Window
                 return;
             }
             ComposerBox.Focus();
+            if (!settings.HasShownTopmostHint)
+            {
+                settings.HasShownTopmostHint = true;
+                Dispatcher.BeginInvoke(() =>
+                {
+                    TopmostHintPopup.IsOpen = true;
+                    topmostHintTimer.Start();
+                }, DispatcherPriority.ContextIdle);
+            }
             if (load.Warning is not null)
             {
                 MessageBox.Show(this, load.Warning, "已恢复备份", MessageBoxButton.OK, MessageBoxImage.Warning);
@@ -73,14 +106,14 @@ public partial class MainWindow : Window
         Closing += OnClosing;
     }
 
-    private string CurrentSection => (SectionPicker.SelectedItem as ComboBoxItem)?.Tag as string ?? "active";
+    private string CurrentSection => currentSection;
 
     private DraftColor? CurrentColor => (ColorPicker.SelectedItem as ComboBoxItem)?.Tag as DraftColor?;
 
     private void PopulateColorFilter()
     {
         ColorPicker.Items.Clear();
-        ColorPicker.Items.Add(new ComboBoxItem { Content = "全部分类", IsSelected = true });
+        ColorPicker.Items.Add(new ComboBoxItem { Content = "全部标签", IsSelected = true });
         foreach (var color in Enum.GetValues<DraftColor>())
         {
             ColorPicker.Items.Add(new ComboBoxItem { Content = state.LabelName(color), Tag = color });
@@ -111,19 +144,14 @@ public partial class MainWindow : Window
         }
         if (drafts.Count == 0)
         {
-            DraftPanel.Children.Add(new TextBlock
-            {
-                Text = section == "due" ? "目前没有待处理草稿。" : "这里还是空的。",
-                Foreground = System.Windows.Media.Brushes.Gray,
-                Margin = new Thickness(8, 24, 8, 8),
-                HorizontalAlignment = HorizontalAlignment.Center,
-            });
+            DraftPanel.Children.Add(BuildEmptyState(section, query, color));
         }
-        StatusText.Text = $"共 {drafts.Count} 条";
+        UpdateSectionCounts();
     }
 
     private void Composer_TextChanged(object sender, TextChangedEventArgs e)
     {
+        UpdateComposerPlaceholder();
         if (!initializing)
         {
             state.Composer = ComposerBox.Text;
@@ -131,8 +159,6 @@ public partial class MainWindow : Window
     }
 
     private void Composer_CommitRequested(object? sender, EventArgs e) => SealComposer();
-
-    private void Seal_Click(object sender, RoutedEventArgs e) => SealComposer();
 
     private void SealComposer()
     {
@@ -150,10 +176,203 @@ public partial class MainWindow : Window
 
     private void Filter_Changed(object sender, EventArgs e)
     {
+        if (ClearSearchButton is not null)
+        {
+            ClearSearchButton.Visibility = string.IsNullOrEmpty(SearchBox?.Text)
+                ? Visibility.Collapsed
+                : Visibility.Visible;
+        }
         if (!initializing)
         {
             RefreshDrafts();
         }
+    }
+
+    private void SectionButton_Click(object sender, RoutedEventArgs e) => OpenContextMenu(SectionButton);
+
+    private void MoreButton_Click(object sender, RoutedEventArgs e) => OpenContextMenu(MoreButton);
+
+    private static void OpenContextMenu(Button button)
+    {
+        if (button.ContextMenu is not { } menu)
+        {
+            return;
+        }
+        menu.PlacementTarget = button;
+        menu.Placement = PlacementMode.Bottom;
+        menu.IsOpen = true;
+    }
+
+    private void SectionMenuItem_Click(object sender, RoutedEventArgs e)
+    {
+        if (sender is not MenuItem { Tag: string section })
+        {
+            return;
+        }
+        currentSection = section;
+        UpdateSectionChrome();
+        RefreshDrafts();
+        if (section == "active" && SearchHost.Visibility != Visibility.Visible)
+        {
+            ComposerBox.Focus();
+        }
+    }
+
+    private void UpdateSectionChrome()
+    {
+        SectionTitle.Text = currentSection switch
+        {
+            "due" => "清理台",
+            "archived" => "存档区",
+            "trash" => "回收站",
+            _ => "草稿区",
+        };
+        ComposerHost.Visibility = currentSection == "active" ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void UpdateSectionCounts()
+    {
+        var dueCount = state.DueDrafts(DateTimeOffset.Now).Count;
+        var trashCount = state.TrashedDrafts.Count;
+        DueMenuItem.Header = dueCount == 0 ? "清理台" : $"清理台（{dueCount}）";
+        TrashMenuItem.Header = trashCount == 0 ? "回收站" : $"回收站（{trashCount}）";
+
+        var filtering = !string.IsNullOrWhiteSpace(SearchBox.Text) || CurrentColor is not null;
+        ComposerHost.Visibility = currentSection == "active" && !filtering
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+    }
+
+    private UIElement BuildEmptyState(string section, string query, DraftColor? color)
+    {
+        var filtering = !string.IsNullOrWhiteSpace(query) || color is not null;
+        var (title, detail) = filtering
+            ? ("没有找到相关草稿", "可以清除搜索文字或标签筛选")
+            : section switch
+            {
+                "due" => ("暂时没有需要处理的草稿", $"新草稿会在最后修改 {state.DefaultReviewDays} 天后进入这里"),
+                "archived" => ("存档区是空的", "需要长期保留的草稿可以存放在这里"),
+                "trash" => ("回收站是空的", "删除的草稿会先保存在这里"),
+                _ => ("从这里写下第一条草稿", "写完一条，按 Ctrl+Enter 划定"),
+            };
+
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(8, 40, 8, 8),
+            HorizontalAlignment = HorizontalAlignment.Center,
+        };
+        panel.Children.Add(new TextBlock
+        {
+            Text = title,
+            FontSize = 12,
+            HorizontalAlignment = HorizontalAlignment.Center,
+            Foreground = SystemColors.GrayTextBrush,
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = detail,
+            FontSize = 11,
+            Margin = new Thickness(0, 7, 0, 0),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center,
+            Foreground = SystemColors.GrayTextBrush,
+            Opacity = 0.72,
+        });
+        return panel;
+    }
+
+    private void SearchButton_Click(object sender, RoutedEventArgs e) =>
+        SetSearchVisible(SearchButton.IsChecked == true);
+
+    private void Search_Executed(object sender, ExecutedRoutedEventArgs e)
+    {
+        SearchButton.IsChecked = true;
+        SetSearchVisible(true);
+        e.Handled = true;
+    }
+
+    private void SetSearchVisible(bool visible)
+    {
+        SearchHost.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        if (visible)
+        {
+            SearchBox.Focus();
+            SearchBox.SelectAll();
+            return;
+        }
+
+        initializing = true;
+        SearchBox.Clear();
+        if (ColorPicker.Items.Count > 0)
+        {
+            ColorPicker.SelectedIndex = 0;
+        }
+        initializing = false;
+        RefreshDrafts();
+        if (currentSection == "active")
+        {
+            ComposerBox.Focus();
+        }
+    }
+
+    private void SearchBox_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape)
+        {
+            return;
+        }
+        SearchButton.IsChecked = false;
+        SetSearchVisible(false);
+        e.Handled = true;
+    }
+
+    private void ClearSearchButton_Click(object sender, RoutedEventArgs e)
+    {
+        SearchBox.Clear();
+        SearchBox.Focus();
+    }
+
+    private void PinButton_Click(object sender, RoutedEventArgs e)
+    {
+        Topmost = PinButton.IsChecked == true;
+        settings.Topmost = Topmost;
+        TopmostHintPopup.IsOpen = false;
+        topmostHintTimer.Stop();
+    }
+
+    private void ResetWindowPlacement_Click(object sender, RoutedEventArgs e)
+    {
+        settings.WindowWidth = 420;
+        settings.WindowHeight = 680;
+        settings.WindowLeftPixels = null;
+        settings.WindowTopPixels = null;
+        settings.WindowMaximized = false;
+        WindowState = WindowState.Normal;
+        WindowPlacementService.Restore(this, settings);
+        ShowStatus("已恢复默认窗口大小和位置");
+    }
+
+    private void UpdateComposerPlaceholder() =>
+        ComposerPlaceholder.Visibility = string.IsNullOrEmpty(ComposerBox.Text)
+            ? Visibility.Visible
+            : Visibility.Collapsed;
+
+    private void ShowStatus(string message, bool persistent = false)
+    {
+        statusTimer.Stop();
+        StatusText.Text = message;
+        StatusToast.Background = (Brush)FindResource(persistent ? "ErrorBrush" : "HintSurfaceBrush");
+        StatusToast.Visibility = Visibility.Visible;
+        if (!persistent)
+        {
+            statusTimer.Start();
+        }
+    }
+
+    private void HideStatus()
+    {
+        statusTimer.Stop();
+        StatusToast.Visibility = Visibility.Collapsed;
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
@@ -166,6 +385,7 @@ public partial class MainWindow : Window
         settings.Normalize();
         settingsStore.Save(settings);
         Topmost = settings.Topmost;
+        PinButton.IsChecked = Topmost;
         repository.Configure(settings.AutomaticBackupsEnabled, settings.BackupRetentionCount);
         state.ConfigureReviewDays(settings.DefaultReviewDays);
         PopulateColorFilter();
@@ -182,7 +402,7 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             File.WriteAllBytes(dialog.FileName, repository.FullBackup(state.ToSnapshot()));
-            StatusText.Text = "完整备份已导出";
+            ShowStatus("完整备份已导出");
         }
     }
 
@@ -209,7 +429,7 @@ public partial class MainWindow : Window
             initializing = false;
             PopulateColorFilter();
             RefreshDrafts();
-            StatusText.Text = "备份已恢复";
+            ShowStatus("备份已恢复");
         }
         catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DraftBookDataException)
         {
@@ -223,7 +443,7 @@ public partial class MainWindow : Window
         if (dialog.ShowDialog(this) == true)
         {
             File.WriteAllText(dialog.FileName, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            StatusText.Text = "已导出";
+            ShowStatus("已导出");
         }
     }
 
@@ -255,8 +475,8 @@ public partial class MainWindow : Window
         }
         try
         {
-            settings.WindowWidth = Width;
-            settings.WindowHeight = Height;
+            WindowPlacementService.Capture(this, settings);
+            settings.Topmost = Topmost;
             settingsStore.Save(settings);
             if (autoSave is not null)
             {

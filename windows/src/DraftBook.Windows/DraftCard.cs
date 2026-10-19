@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Windows;
+using System.Windows.Automation;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
@@ -20,12 +21,11 @@ public sealed class DraftCard : Border
         this.state = state;
         draftId = draft.Id;
         this.refresh = refresh;
-        Background = Brushes.White;
-        BorderBrush = new SolidColorBrush(Color.FromArgb(24, 0, 0, 0));
-        BorderThickness = new Thickness(1);
-        CornerRadius = new CornerRadius(8);
-        Margin = new Thickness(0, 0, 0, 8);
-        Padding = new Thickness(11, 8, 11, 9);
+        Background = Brushes.Transparent;
+        BorderBrush = SystemColors.ControlLightBrush;
+        BorderThickness = new Thickness(0, 0, 0, 1);
+        Margin = new Thickness(0);
+        Padding = new Thickness(0, 7, 0, 10);
 
         var stack = new StackPanel();
         stack.Children.Add(BuildHeader(draft, section));
@@ -40,49 +40,80 @@ public sealed class DraftCard : Border
 
     private UIElement BuildHeader(Draft draft, string section)
     {
-        var grid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
+        var grid = new Grid { Height = 30 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-        var tag = new ComboBox
+        var tagMark = new Border
         {
-            Width = 92,
-            FontSize = 11,
+            Width = 26,
+            Height = 8,
+            CornerRadius = new CornerRadius(4),
             Background = TagBrush(draft),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        var tag = new Button
+        {
+            Width = 36,
+            Height = 28,
+            MinHeight = 28,
+            Padding = new Thickness(5, 0, 5, 0),
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            Content = tagMark,
             ToolTip = $"{state.LabelName(draft.Color)}\n创建：{draft.CreatedAt.ToLocalTime():g}\n更新：{draft.UpdatedAt.ToLocalTime():g}\n" +
                       DraftTiming.CleanupDescription(draft.ReviewAt, draft.Pinned, DateTimeOffset.Now),
         };
+        AutomationProperties.SetName(tag, $"更换草稿标签，当前为{state.LabelName(draft.Color)}");
+        var tagMenu = new ContextMenu();
         foreach (var color in Enum.GetValues<DraftColor>())
         {
-            tag.Items.Add(new ComboBoxItem { Content = state.LabelName(color), Tag = color });
-        }
-        tag.SelectedIndex = (int)draft.Color;
-        tag.SelectionChanged += (_, _) =>
-        {
-            if (tag.SelectedItem is ComboBoxItem { Tag: DraftColor selected })
+            var choice = new MenuItem { Header = state.LabelName(color), Tag = color };
+            choice.Click += (_, _) =>
             {
-                state.SetColor(draftId, selected);
-                tag.Background = TagBrush(draft);
-            }
+                state.SetColor(draftId, color);
+                tagMark.Background = TagBrush(draft);
+                tag.ToolTip = state.LabelName(color);
+                AutomationProperties.SetName(tag, $"更换草稿标签，当前为{state.LabelName(color)}");
+            };
+            tagMenu.Items.Add(choice);
+        }
+        tag.ContextMenu = tagMenu;
+        tag.Click += (_, _) =>
+        {
+            tagMenu.PlacementTarget = tag;
+            tagMenu.IsOpen = true;
         };
         grid.Children.Add(tag);
+
+        var rule = new Border
+        {
+            Height = 1,
+            Margin = new Thickness(4, 0, 8, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Background = SystemColors.ControlLightBrush,
+        };
+        Grid.SetColumn(rule, 1);
+        grid.Children.Add(rule);
 
         var status = new TextBlock
         {
             Text = StatusFor(draft),
             VerticalAlignment = VerticalAlignment.Center,
-            Foreground = new SolidColorBrush(Color.FromRgb(120, 120, 120)),
-            FontSize = 10,
-            Margin = new Thickness(9, 0, 5, 0),
+            Foreground = SystemColors.GrayTextBrush,
+            FontSize = 11,
+            Margin = new Thickness(0, 0, 6, 0),
             TextTrimming = TextTrimming.CharacterEllipsis,
         };
-        Grid.SetColumn(status, 1);
+        Grid.SetColumn(status, 2);
         grid.Children.Add(status);
 
         var actions = new StackPanel { Orientation = Orientation.Horizontal };
         AddActionButtons(actions, draft, section);
-        Grid.SetColumn(actions, 2);
+        Grid.SetColumn(actions, 3);
         grid.Children.Add(actions);
         return grid;
     }
@@ -92,7 +123,7 @@ public sealed class DraftCard : Border
         var title = new TextBox
         {
             Text = draft.DisplayTitle,
-            FontSize = 13,
+            FontSize = 14,
             FontWeight = FontWeights.SemiBold,
             BorderThickness = new Thickness(0),
             Background = Brushes.Transparent,
@@ -105,7 +136,7 @@ public sealed class DraftCard : Border
 
     private void AddActionButtons(Panel panel, Draft draft, string section)
     {
-        panel.Children.Add(ActionButton("复制", () =>
+        panel.Children.Add(IconButton("\uE8C8", "复制整条", () =>
         {
             if (ClipboardService.TrySetText(Window.GetWindow(this), draft.Content))
             {
@@ -113,25 +144,29 @@ public sealed class DraftCard : Border
             }
         }));
 
+        var menu = new ContextMenu();
         if (draft.State == DraftState.Active)
         {
             if (section == "due")
             {
-                panel.Children.Add(ActionButton("延后", () => { state.Postpone(draftId, state.DefaultReviewDays, DateTimeOffset.Now); refresh(); }));
+                menu.Items.Add(MenuAction("延后", () => { state.Postpone(draftId, state.DefaultReviewDays, DateTimeOffset.Now); refresh(); }));
             }
-            panel.Children.Add(ActionButton(draft.Pinned ? "取消固定" : "固定", () => { state.TogglePinned(draftId, DateTimeOffset.Now); refresh(); }));
-            panel.Children.Add(ActionButton("存档", () => { state.Archive(draftId, null, null, DateTimeOffset.Now); refresh(); }));
-            panel.Children.Add(ActionButton("删除", () => { state.MoveToTrash(draftId, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(MenuAction(draft.Pinned ? "取消固定" : "固定", () => { state.TogglePinned(draftId, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(MenuAction("存档", () => { state.Archive(draftId, null, null, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(MenuAction("移到回收站", () => { state.MoveToTrash(draftId, DateTimeOffset.Now); refresh(); }));
         }
         else if (draft.State == DraftState.Archived)
         {
-            panel.Children.Add(ActionButton("恢复", () => { state.RestoreFromArchive(draftId, DateTimeOffset.Now); refresh(); }));
-            panel.Children.Add(ActionButton("删除", () => { state.MoveToTrash(draftId, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(MenuAction("恢复到草稿区", () => { state.RestoreFromArchive(draftId, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(MenuAction("移到回收站", () => { state.MoveToTrash(draftId, DateTimeOffset.Now); refresh(); }));
         }
         else
         {
-            panel.Children.Add(ActionButton("恢复", () => { state.RestoreFromTrash(draftId, DateTimeOffset.Now); refresh(); }));
-            panel.Children.Add(ActionButton("永久删除", () =>
+            menu.Items.Add(MenuAction("恢复到草稿区", () => { state.RestoreFromTrash(draftId, DateTimeOffset.Now); refresh(); }));
+            menu.Items.Add(new Separator());
+            menu.Items.Add(MenuAction("永久删除", () =>
             {
                 var owner = Window.GetWindow(this);
                 var result = MessageBox.Show(owner, "这条草稿将无法恢复。确定永久删除吗？", "永久删除",
@@ -143,13 +178,39 @@ public sealed class DraftCard : Border
                 }
             }));
         }
+
+        var more = IconButton("\uE712", "更多操作", () =>
+        {
+            menu.PlacementTarget = panel;
+            menu.IsOpen = true;
+        });
+        more.ContextMenu = menu;
+        panel.Children.Add(more);
     }
 
-    private static Button ActionButton(string label, Action action)
+    private static Button IconButton(string glyph, string label, Action action)
     {
-        var button = new Button { Content = label, FontSize = 10, Padding = new Thickness(5, 2, 5, 2) };
+        var button = new Button
+        {
+            Content = new TextBlock { Text = glyph, FontFamily = new FontFamily("Segoe MDL2 Assets"), FontSize = 12 },
+            Width = 28,
+            Height = 28,
+            MinHeight = 28,
+            Padding = new Thickness(0),
+            Background = Brushes.Transparent,
+            BorderBrush = Brushes.Transparent,
+            ToolTip = label,
+        };
+        AutomationProperties.SetName(button, label);
         button.Click += (_, _) => action();
         return button;
+    }
+
+    private static MenuItem MenuAction(string label, Action action)
+    {
+        var item = new MenuItem { Header = label };
+        item.Click += (_, _) => action();
+        return item;
     }
 
     private void ShowPreview(string content)
@@ -158,7 +219,7 @@ public sealed class DraftCard : Border
         bodyHost.Children.Clear();
         var preview = new MarkdownPreview(content)
         {
-            Margin = new Thickness(1, 5, 1, 2),
+            Margin = new Thickness(4, 5, 4, 2),
             ToolTip = "单击编辑原文；Ctrl+单击链接打开；复制保留 Markdown 语法",
         };
         preview.LinkOpenRequested += (_, uri) => LinkLauncher.Open(Window.GetWindow(this), uri);
@@ -191,7 +252,7 @@ public sealed class DraftCard : Border
             MaxHeight = 360,
             VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
             BorderThickness = new Thickness(0),
-            Margin = new Thickness(0, 5, 0, 2),
+            Margin = new Thickness(4, 5, 4, 2),
         };
         editor.TextChanged += (_, _) => state.UpdateContent(draftId, editor.Text, DateTimeOffset.Now);
         editor.LostKeyboardFocus += (_, _) =>

@@ -1,0 +1,89 @@
+<Window x:Class="DraftBook.Windows.SettingsDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="草稿本设置"
+        Icon="Assets/DraftBook.ico"
+        Width="440"
+        Height="560"
+        MinWidth="400"
+        MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="CanResizeWithGrip"
+        FontFamily="Segoe UI, Microsoft YaHei UI"
+        FontSize="13"
+        UseLayoutRounding="True">
+    <Window.Resources>
+        <Style x:Key="SectionHeadingStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,20,0,10" />
+        </Style>
+        <Style x:Key="HelperTextStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="24,3,0,0" />
+        </Style>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="22,4,22,22">
+                <TextBlock Text="常规" Style="{StaticResource SectionHeadingStyle}" />
+                <CheckBox x:Name="TopmostCheckBox" Content="窗口始终置顶" />
+                <TextBlock Text="也可以随时使用主窗口右上角的图钉按钮切换。"
+                           Style="{StaticResource HelperTextStyle}" />
+
+                <Grid Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="默认清理周期" />
+                        <TextBlock Text="草稿多久未修改后进入清理台"
+                                   FontSize="11"
+                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}" />
+                    </StackPanel>
+                    <ComboBox x:Name="ReviewDaysComboBox" Grid.Column="1" Width="112" />
+                </Grid>
+
+                <TextBlock Text="备份" Style="{StaticResource SectionHeadingStyle}" />
+                <CheckBox x:Name="BackupsCheckBox" Content="每日自动备份" />
+                <TextBlock Text="备份只保存在这台电脑的草稿本数据目录中。"
+                           Style="{StaticResource HelperTextStyle}" />
+
+                <Grid Margin="0,14,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="自动备份保留数量" VerticalAlignment="Center" />
+                    <ComboBox x:Name="RetentionComboBox" Grid.Column="1" Width="112" />
+                </Grid>
+
+                <TextBlock Text="分类名称" Style="{StaticResource SectionHeadingStyle}" />
+                <TextBlock Text="每个名称最多 12 个字，颜色仍用于快速识别。"
+                           FontSize="11"
+                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                           Margin="0,-5,0,7" />
+                <StackPanel x:Name="LabelPanel" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Row="1"
+                BorderBrush="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
+                BorderThickness="0,1,0,0"
+                Padding="16,12">
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="取消" IsCancel="True" MinWidth="76" Margin="0,0,8,0" />
+                <Button Content="保存" IsDefault="True" MinWidth="76" Click="Save_Click" />
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

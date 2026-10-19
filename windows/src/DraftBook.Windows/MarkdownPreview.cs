@@ -41,7 +41,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             PagePadding = new Thickness(0),
             FontFamily = new FontFamily("Segoe UI, Microsoft YaHei UI"),
             FontSize = 14,
-            Foreground = new SolidColorBrush(Color.FromRgb(38, 38, 38)),
+            Foreground = SystemColors.WindowTextBrush,
         };
 
         var markdown = Markdig.Markdown.Parse(source ?? string.Empty, Pipeline);
@@ -80,7 +80,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
                 }
             case QuoteBlock quote:
                 {
-                    var section = new Section { Margin = new Thickness(10, 3, 0, 7), Foreground = Brushes.DimGray };
+                    var section = new Section { Margin = new Thickness(10, 3, 0, 7), Foreground = SystemColors.GrayTextBrush };
                     foreach (var child in quote)
                     {
                         AddBlock(section, child);
@@ -102,7 +102,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
                 {
                     Height = 1,
                     Margin = new Thickness(0, 8, 0, 8),
-                    Background = new SolidColorBrush(Color.FromArgb(35, 0, 0, 0)),
+                    Background = SystemColors.ControlDarkBrush,
                 }));
                 break;
             case ContainerBlock container:
@@ -120,7 +120,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
         FontSize = 12.5,
     })
     {
-        Background = new SolidColorBrush(Color.FromRgb(244, 244, 244)),
+        Background = SystemColors.ControlBrush,
         Padding = new Thickness(8),
         Margin = new Thickness(0, 4, 0, 8),
     };
@@ -172,7 +172,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             case LiteralInline literal:
                 return RenderTextWithBareLinks(literal.Content.ToString());
             case CodeInline code:
-                return new Run(code.Content) { FontFamily = new FontFamily("Cascadia Mono, Consolas"), Background = Brushes.Gainsboro };
+                return new Run(code.Content) { FontFamily = new FontFamily("Cascadia Mono, Consolas"), Background = SystemColors.ControlBrush };
             case LineBreakInline lineBreak:
                 return lineBreak.IsHard ? new LineBreak() : new Run(" ");
             case EmphasisInline emphasis:
@@ -204,7 +204,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
                     return hyperlink;
                 }
             case LinkInline image:
-                return new Run(image.FirstChild?.ToString() ?? image.Url ?? "[图片]") { Foreground = Brushes.DimGray };
+                return new Run(image.FirstChild?.ToString() ?? image.Url ?? "[图片]") { Foreground = SystemColors.GrayTextBrush };
             case ContainerInline container:
                 {
                     var span = new Span();

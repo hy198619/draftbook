@@ -5,16 +5,23 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <UseWPF>true</UseWPF>
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\DraftBook.ico</ApplicationIcon>
     <AssemblyName>DraftBook</AssemblyName>
     <RootNamespace>DraftBook.Windows</RootNamespace>
-    <Version>0.9.6-preview.1</Version>
+    <Product>DraftBook 草稿本</Product>
+    <Description>面向电脑深度工作场景的轻量草稿工具</Description>
+    <Authors>杨昱轩</Authors>
+    <Version>0.9.6-preview.2</Version>
     <AssemblyVersion>0.9.6.0</AssemblyVersion>
-    <FileVersion>0.9.6.0</FileVersion>
+    <FileVersion>0.9.6.2</FileVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="../DraftBook.Core/DraftBook.Core.csproj" />
     <PackageReference Include="Markdig" Version="1.4.0" />
+    <Resource Include="Assets\DraftBook.ico" />
   </ItemGroup>
 </Project>

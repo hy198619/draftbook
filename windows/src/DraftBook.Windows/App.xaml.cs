@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
 
@@ -14,7 +15,16 @@ public partial class App : Application
         ownsSingleInstance = isFirstInstance;
         if (!isFirstInstance)
         {
-            MessageBox.Show("草稿本已经在运行。", "草稿本", MessageBoxButton.OK, MessageBoxImage.Information);
+            var existingWindow = FindWindow(null, "草稿本");
+            if (existingWindow != IntPtr.Zero)
+            {
+                ShowWindow(existingWindow, 9);
+                SetForegroundWindow(existingWindow);
+            }
+            else
+            {
+                MessageBox.Show("草稿本已经在运行。", "草稿本", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
             Shutdown();
             return;
         }
@@ -38,4 +48,15 @@ public partial class App : Application
         singleInstance?.Dispose();
         base.OnExit(e);
     }
+
+    [DllImport("user32.dll", EntryPoint = "FindWindowW", CharSet = CharSet.Unicode)]
+    private static extern IntPtr FindWindow(string? className, string windowName);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool ShowWindow(IntPtr window, int command);
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
 }

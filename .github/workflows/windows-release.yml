@@ -1,0 +1,84 @@
+name: Windows Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish the GitHub pre-release after packaging"
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    runs-on: windows-2025
+    defaults:
+      run:
+        working-directory: windows
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: "10.0.x"
+      - name: Restore pinned packaging tool
+        run: dotnet tool restore
+      - name: Run core tests
+        run: dotnet test tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj -c Release
+      - name: Read Windows version
+        id: version
+        shell: pwsh
+        run: |
+          $version = (dotnet msbuild src/DraftBook.Windows/DraftBook.Windows.csproj -getProperty:Version).Trim()
+          "value=$version" >> $env:GITHUB_OUTPUT
+          "tag=windows-v$version" >> $env:GITHUB_OUTPUT
+      - name: Download previous x64 update feed
+        shell: pwsh
+        continue-on-error: true
+        run: >-
+          dotnet tool run vpk -- download github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }} --pre
+          --channel win-x64-beta --outputDir artifacts/releases/win-x64
+      - name: Download previous ARM64 update feed
+        shell: pwsh
+        continue-on-error: true
+        run: >-
+          dotnet tool run vpk -- download github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }} --pre
+          --channel win-arm64-beta --outputDir artifacts/releases/win-arm64
+      - name: Build x64 installer and update package
+        shell: pwsh
+        run: ./scripts/publish-windows.ps1 -Runtime win-x64 -KeepExistingReleases -SkipTests
+      - name: Build ARM64 installer and update package
+        shell: pwsh
+        run: ./scripts/publish-windows.ps1 -Runtime win-arm64 -KeepExistingReleases -SkipTests
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: DraftBook-Windows-${{ steps.version.outputs.value }}-installers
+          path: windows/artifacts/releases/**
+          if-no-files-found: error
+      - name: Publish x64 channel to GitHub Release
+        if: ${{ inputs.publish }}
+        shell: pwsh
+        run: >-
+          dotnet tool run vpk -- upload github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }} --publish --pre --merge
+          --tag ${{ steps.version.outputs.tag }}
+          --releaseName "DraftBook Windows ${{ steps.version.outputs.value }}"
+          --channel win-x64-beta --outputDir artifacts/releases/win-x64
+      - name: Publish ARM64 channel to the same GitHub Release
+        if: ${{ inputs.publish }}
+        shell: pwsh
+        run: >-
+          dotnet tool run vpk -- upload github
+          --repoUrl https://github.com/${{ github.repository }}
+          --token ${{ secrets.GITHUB_TOKEN }} --publish --pre --merge
+          --tag ${{ steps.version.outputs.tag }}
+          --releaseName "DraftBook Windows ${{ steps.version.outputs.value }}"
+          --channel win-arm64-beta --outputDir artifacts/releases/win-arm64

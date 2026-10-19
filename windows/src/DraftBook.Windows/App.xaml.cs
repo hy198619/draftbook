@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using System.Threading;
 using System.Windows;
+using Velopack;
 
 namespace DraftBook.Windows;
 
@@ -8,6 +9,15 @@ public partial class App : Application
 {
     private Mutex? singleInstance;
     private bool ownsSingleInstance;
+
+    [STAThread]
+    private static void Main(string[] args)
+    {
+        VelopackApp.Build().Run();
+        var app = new App();
+        app.InitializeComponent();
+        app.Run();
+    }
 
     protected override void OnStartup(StartupEventArgs e)
     {

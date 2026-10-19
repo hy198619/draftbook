@@ -18,6 +18,7 @@ public sealed partial class SettingsDialog : Window
         this.state = state;
 
         TopmostCheckBox.IsChecked = settings.Topmost;
+        UpdatesCheckBox.IsChecked = settings.AutomaticUpdatesEnabled;
         BackupsCheckBox.IsChecked = settings.AutomaticBackupsEnabled;
 
         foreach (var days in new[] { 1, 3, 7, 14, 30 })
@@ -58,6 +59,7 @@ public sealed partial class SettingsDialog : Window
         try
         {
             settings.Topmost = TopmostCheckBox.IsChecked == true;
+            settings.AutomaticUpdatesEnabled = UpdatesCheckBox.IsChecked == true;
             settings.AutomaticBackupsEnabled = BackupsCheckBox.IsChecked == true;
             settings.DefaultReviewDays = (ReviewDaysComboBox.SelectedItem as ComboBoxItem)?.Tag as int? ?? 7;
             settings.BackupRetentionCount = (RetentionComboBox.SelectedItem as ComboBoxItem)?.Tag as int? ?? 14;

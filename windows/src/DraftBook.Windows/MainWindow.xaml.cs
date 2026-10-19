@@ -20,10 +20,13 @@ public partial class MainWindow : Window
     private readonly DraftRepository repository;
     private readonly DraftBookState state;
     private readonly AutoSaveCoordinator? autoSave;
+    private readonly AppUpdateService updateService = new();
     private readonly DispatcherTimer statusTimer = new() { Interval = TimeSpan.FromSeconds(3) };
     private readonly DispatcherTimer topmostHintTimer = new() { Interval = TimeSpan.FromSeconds(8) };
+    private CancellationTokenSource? updateOperation;
     private bool closingCompleted;
     private bool initializing = true;
+    private bool updateCheckRunning;
     private string currentSection = "active";
 
     public MainWindow()
@@ -101,6 +104,10 @@ public partial class MainWindow : Window
             if (load.Warning is not null)
             {
                 MessageBox.Show(this, load.Warning, "已恢复备份", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+            if (settings.ShouldCheckForUpdates(DateTimeOffset.UtcNow))
+            {
+                _ = CheckForUpdatesAsync(userInitiated: false);
             }
         };
         Closing += OnClosing;
@@ -392,6 +399,133 @@ public partial class MainWindow : Window
         RefreshDrafts();
     }
 
+    private async void CheckForUpdates_Click(object sender, RoutedEventArgs e) =>
+        await CheckForUpdatesAsync(userInitiated: true);
+
+    private async Task CheckForUpdatesAsync(bool userInitiated)
+    {
+        if (updateCheckRunning)
+        {
+            if (userInitiated)
+            {
+                ShowStatus("正在检查更新…");
+            }
+            return;
+        }
+
+        if (!updateService.CanUpdate)
+        {
+            if (userInitiated)
+            {
+                var answer = MessageBox.Show(this,
+                    $"当前是便携版或未通过安装程序启动，无法自动更新。\n\n" +
+                    $"当前版本：{updateService.CurrentVersion}\n\n是否打开 GitHub 下载正式安装程序？",
+                    "检查更新", MessageBoxButton.YesNo, MessageBoxImage.Information);
+                if (answer == MessageBoxResult.Yes)
+                {
+                    LinkLauncher.Open(this, new Uri(AppUpdateService.ReleasesUrl));
+                }
+            }
+            return;
+        }
+
+        updateCheckRunning = true;
+        CheckForUpdatesMenuItem.IsEnabled = false;
+        updateOperation = new CancellationTokenSource();
+        var cancellationToken = updateOperation.Token;
+        try
+        {
+            if (!userInitiated)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(8), cancellationToken);
+            }
+
+            if (userInitiated)
+            {
+                ShowStatus("正在检查更新…");
+            }
+            var update = await updateService.CheckAsync();
+            cancellationToken.ThrowIfCancellationRequested();
+            settings.LastUpdateCheckUtc = DateTimeOffset.UtcNow;
+            settingsStore.Save(settings);
+            if (update is null)
+            {
+                if (userInitiated)
+                {
+                    MessageBox.Show(this,
+                        $"当前已是最新版本：{updateService.CurrentVersion}",
+                        "检查更新", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                return;
+            }
+
+            var targetVersion = update.TargetFullRelease.Version.ToString();
+            ShowStatus($"发现新版本 {targetVersion}，正在下载…");
+            await updateService.DownloadAsync(update, progress => Dispatcher.BeginInvoke(() =>
+                ShowStatus($"正在下载更新 {progress}%")), cancellationToken);
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var restart = MessageBox.Show(this,
+                $"草稿本 {targetVersion} 已下载并校验完成。\n\n" +
+                "现在重启即可自动完成安装；选择“否”则在下次启动时安装。",
+                "更新已就绪", MessageBoxButton.YesNo, MessageBoxImage.Information);
+            if (restart == MessageBoxResult.Yes)
+            {
+                if (await SaveBeforeUpdateAsync())
+                {
+                    updateService.ApplyAndRestart(update);
+                }
+            }
+            else
+            {
+                ShowStatus("更新已就绪，将在下次启动时安装");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // The app is closing; no update error needs to be shown.
+        }
+        catch (Exception exception)
+        {
+            if (userInitiated)
+            {
+                MessageBox.Show(this,
+                    $"无法完成更新：\n{exception.Message}\n\n你也可以从 GitHub Release 手动下载安装程序。",
+                    "更新失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+        }
+        finally
+        {
+            updateOperation?.Dispose();
+            updateOperation = null;
+            updateCheckRunning = false;
+            CheckForUpdatesMenuItem.IsEnabled = true;
+        }
+    }
+
+    private async Task<bool> SaveBeforeUpdateAsync()
+    {
+        WindowPlacementService.Capture(this, settings);
+        settings.Topmost = Topmost;
+        settingsStore.Save(settings);
+        if (autoSave is null)
+        {
+            return true;
+        }
+
+        await autoSave.FlushAsync();
+        if (autoSave.LastError is null)
+        {
+            return true;
+        }
+
+        MessageBox.Show(this,
+            $"{autoSave.LastError}\n\n为防止丢失未保存内容，已取消本次立即重启。" +
+            "\n更新包已下载，请先处理保存问题；下次启动时会安装更新。",
+            "更新前保存失败", MessageBoxButton.OK, MessageBoxImage.Warning);
+        return false;
+    }
+
     private void ExportText_Click(object sender, RoutedEventArgs e) => ExportText("DraftBook.txt", "文本文件|*.txt", state.ExportPlainText());
 
     private void ExportMarkdown_Click(object sender, RoutedEventArgs e) => ExportText("DraftBook.md", "Markdown|*.md", state.ExportMarkdown());
@@ -462,13 +596,15 @@ public partial class MainWindow : Window
     private void Guide_Click(object sender, RoutedEventArgs e) => MessageBox.Show(this,
         "在顶部直接输入，按 Ctrl+Enter 划定。\n\n" +
         "草稿自动保存；单击正文编辑 Markdown 原文，Ctrl+单击链接打开。\n\n" +
-        "到期草稿进入清理台，可延后、固定、存档或删除。",
+        "到期草稿进入清理台，可延后、固定、存档或删除。\n\n" +
+        $"版本：{updateService.CurrentVersion}",
         "功能说明", MessageBoxButton.OK, MessageBoxImage.Information);
 
     private void Exit_Click(object sender, RoutedEventArgs e) => Close();
 
     private void OnClosing(object? sender, CancelEventArgs e)
     {
+        updateOperation?.Cancel();
         if (closingCompleted)
         {
             return;

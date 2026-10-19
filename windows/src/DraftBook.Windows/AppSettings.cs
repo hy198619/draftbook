@@ -11,6 +11,8 @@ public sealed class AppSettings
     public bool HasShownTopmostHint { get; set; }
     public int DefaultReviewDays { get; set; } = 7;
     public bool AutomaticBackupsEnabled { get; set; } = true;
+    public bool AutomaticUpdatesEnabled { get; set; } = true;
+    public DateTimeOffset? LastUpdateCheckUtc { get; set; }
     public int BackupRetentionCount { get; set; } = 14;
     public int WindowLayoutVersion { get; set; } = CurrentWindowLayoutVersion;
     public double WindowWidth { get; set; } = 420;
@@ -27,6 +29,10 @@ public sealed class AppSettings
         WindowHeight = double.IsFinite(WindowHeight) ? Math.Clamp(WindowHeight, 380, 1400) : 680;
         WindowLayoutVersion = CurrentWindowLayoutVersion;
     }
+
+    public bool ShouldCheckForUpdates(DateTimeOffset now) =>
+        AutomaticUpdatesEnabled &&
+        (LastUpdateCheckUtc is null || LastUpdateCheckUtc <= now.ToUniversalTime().AddHours(-12));
 }
 
 public sealed class AppSettingsStore

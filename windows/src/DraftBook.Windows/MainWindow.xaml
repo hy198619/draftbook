@@ -97,6 +97,9 @@
                             <MenuItem Header="从完整备份恢复…" Click="RestoreBackup_Click" />
                             <Separator />
                             <MenuItem Header="设置…" Click="Settings_Click" />
+                            <MenuItem x:Name="CheckForUpdatesMenuItem"
+                                      Header="检查更新…"
+                                      Click="CheckForUpdates_Click" />
                             <MenuItem Header="功能说明" Click="Guide_Click" />
                             <MenuItem Header="添加功能示例" Click="InstallSamples_Click" />
                             <MenuItem Header="移除功能示例" Click="RemoveSamples_Click" />

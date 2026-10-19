@@ -39,6 +39,12 @@
                 <TextBlock Text="也可以随时使用主窗口右上角的图钉按钮切换。"
                            Style="{StaticResource HelperTextStyle}" />
 
+                <CheckBox x:Name="UpdatesCheckBox"
+                          Margin="0,16,0,0"
+                          Content="自动检查并下载更新" />
+                <TextBlock Text="仅访问 GitHub 版本信息，不会上传草稿；更新就绪后由你决定何时重启安装。"
+                           Style="{StaticResource HelperTextStyle}" />
+
                 <Grid Margin="0,14,0,0">
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*" />

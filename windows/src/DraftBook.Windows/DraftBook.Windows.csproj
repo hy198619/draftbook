@@ -7,6 +7,7 @@
     <EnableWindowsTargeting>true</EnableWindowsTargeting>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\DraftBook.ico</ApplicationIcon>
+    <StartupObject>DraftBook.Windows.App</StartupObject>
     <AssemblyName>DraftBook</AssemblyName>
     <RootNamespace>DraftBook.Windows</RootNamespace>
     <Product>DraftBook 草稿本</Product>
@@ -20,8 +21,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
     <ProjectReference Include="../DraftBook.Core/DraftBook.Core.csproj" />
     <PackageReference Include="Markdig" Version="1.4.0" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
     <Resource Include="Assets\DraftBook.ico" />
+    <Content Include="Assets\THIRD_PARTY_NOTICES.txt" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

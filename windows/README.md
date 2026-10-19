@@ -8,9 +8,9 @@
 - 已完成独立的 .NET 10 核心模型、schema v5 兼容、原子保存、自动备份和 49 项自动测试；
 - 已创建 WPF 界面，包括输入与划定、Markdown 预览、分类与搜索、清理台、存档、回收站、导出与备份恢复；
 - 已在 macOS 上使用 WindowsDesktop targeting pack 交叉编译，0 警告、0 错误；
-- 已配置 `win-x64` 与 `win-arm64` 的独立发布和 Windows CI；
+- 已配置 `win-x64` 与 `win-arm64` 的独立安装包、更新通道和 Windows CI；
 - 正在准备 `0.9.6-preview.2`：窄栏界面、Fluent 系统主题、正式图标、PerMonitorV2、窗口越界修复和首次置顶提示已写入源码；
-- `0.9.6-preview.2` 已在 macOS 使用 .NET 10 WindowsDesktop targeting pack 完成 Release 交叉编译，并分别生成 x64 与 ARM64 自包含 PE32+ 可执行文件；
+- `0.9.6-preview.2` 已在 macOS 使用 .NET 10 WindowsDesktop targeting pack 完成 Release 交叉编译，并分别生成 x64 与 ARM64 的 Setup.exe 及 Velopack 更新包；
 - macOS 继续保持 `0.9.6`，Windows 预览构建使用独立的 `0.9.6-preview.N` 后缀；
 - **`0.9.6-preview.2` 尚未在 Windows 真机运行**，Fluent 实际渲染、中文 IME、窗口交互、链接打开和进程退出仍必须由 Windows 10/11 内测验证；
 - 没有读取或复制任何真实草稿。
@@ -35,4 +35,4 @@ ARM64 发布：
 .\scripts\publish-windows.ps1 -Runtime win-arm64
 ```
 
-生成的 ZIP 为自包含便携版，文件名包含 Windows 预览版本和架构；不要把 x64 与 ARM64 包混用。当前内测包尚未签名，Windows 可能显示 SmartScreen 提示。
+生成物位于 `artifacts/releases/<runtime>/`，包含 Setup.exe、SHA-256、完整更新包和对应架构的版本 feed。x64 使用 `win-x64-beta`，ARM64 使用 `win-arm64-beta`，不可混用。当前内测安装包尚未签名，Windows 可能显示 SmartScreen 提示。

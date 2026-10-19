@@ -37,15 +37,15 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 ## 下载
 
-前往 [DraftBook 0.9.6 Release](https://github.com/hy198619/draftbook/releases/tag/v0.9.6) 下载对应版本：
+请按系统下载对应版本。macOS 仍为 `0.9.6`，Windows 使用独立的 `0.9.6-preview.2` 内测发布通道：
 
 | 系统 | 下载 | 适用设备 | 状态与说明 |
 | --- | --- | --- | --- |
 | macOS | [`DraftBook-v0.9.6-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.6/DraftBook-v0.9.6-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
-| Windows x64 | [`DraftBook-v0.9.6-Windows-x64-preview.zip`](https://github.com/hy198619/draftbook/releases/download/v0.9.6/DraftBook-v0.9.6-Windows-x64-preview.zip) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 便携内测版；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
-| Windows ARM64 | [`DraftBook-v0.9.6-Windows-arm64-preview.zip`](https://github.com/hy198619/draftbook/releases/download/v0.9.6/DraftBook-v0.9.6-Windows-arm64-preview.zip) | Windows 11 ARM64；Snapdragon 等设备 | 便携内测版；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
+| Windows x64 | [`DraftBook-v0.9.6-preview.2-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.2/DraftBook-v0.9.6-preview.2-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
+| Windows ARM64 | [`DraftBook-v0.9.6-preview.2-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.2/DraftBook-v0.9.6-preview.2-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 
-macOS 首次打开需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。Windows 下载后请先解压，再运行 `DraftBook.exe`；如果 SmartScreen 拦截，请先核对 SHA-256，再选择“更多信息 → 仍要运行”。
+macOS 首次打开需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。Windows 运行安装程序后，桌面和开始菜单都会创建“DraftBook 草稿本”快捷方式；如果 SmartScreen 拦截，请先核对 SHA-256，再选择“更多信息 → 仍要运行”。
 
 Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已通过核心自动测试、x64/ARM64 CI 构建和交叉编译，但发布时尚未在 Windows 真机完整验证，当前招募内测用户重点验证中文输入、窗口交互和数据恢复。
 
@@ -64,9 +64,9 @@ Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已
 - 回收站支持恢复和永久删除；
 - TXT、Markdown、完整 JSON 导出；
 - 每日自动备份，支持从完整备份恢复；
-- macOS 版可手动检查 GitHub 新版本，下载并校验安装包后打开 DMG；
+- macOS 版可手动检查 GitHub 新版本；Windows 安装版可自动检查、下载、校验并在重启后完成更新；
 - 可调默认清理周期、备份策略和窗口置顶；
-- 草稿完全保存在本机，不需要账号；Windows 应用不会主动联网，macOS 版只有在用户主动检查或下载更新时才访问 GitHub。
+- 草稿完全保存在本机，不需要账号；Windows 安装版默认每 12 小时最多向 GitHub 检查一次公开版本信息，可在设置中关闭，不会上传草稿。
 
 ## 基本使用
 
@@ -77,7 +77,7 @@ Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已
 5. 点击草稿正文编辑；按住 `⌘`（macOS）或 `Ctrl`（Windows）点击链接可打开目标。鼠标悬停在草稿上方，可复制、固定、存档或删除；
 6. 到期内容会显示“待处理”，在清理台决定它的去留；
 7. macOS 可按 `⌘,` 打开设置；Windows 可点击顶部菜单中的“设置”。
-8. macOS 可在“草稿本 → 检查更新…”手动查询新版本；安装仍需将新版 App 拖入“应用程序”并替换旧版。
+8. macOS 可在“草稿本 → 检查更新…”手动查询新版本；Windows 可在“更多 → 检查更新…”手动检查，安装版也会自动检查。
 
 软件内置“功能示例与说明”，可以一键添加七种状态的示例草稿，实际体验清理、存档和回收流程。
 
@@ -90,7 +90,7 @@ macOS:   ~/Library/Application Support/com.yangyuxuan.DraftBook/
 Windows: %LOCALAPPDATA%\DraftBook\
 ```
 
-当前版本不包含账号、云同步、分析统计、广告 SDK 或草稿上传。Windows 应用不会主动联网；macOS 版只有在用户主动检查或下载更新时才访问 GitHub。草稿文件目前没有加密，因此不要把它当作密码管理器，也不要保存密码、长期有效的 API Key、私钥或恢复码。macOS 版详见[隐私说明](docs/PRIVACY.md)，Windows 版详见[内测指南](windows/spec/BETA_TEST_GUIDE.md)。
+当前版本不包含账号、云同步、分析统计、广告 SDK 或草稿上传。Windows 的自动更新只访问 GitHub 的公开版本信息和更新包，可在设置中关闭自动检查；macOS 版只有在用户主动检查或下载更新时才访问 GitHub。草稿文件目前没有加密，因此不要把它当作密码管理器，也不要保存密码、长期有效的 API Key、私钥或恢复码。macOS 版详见[隐私说明](docs/PRIVACY.md)，Windows 版详见[内测指南](windows/spec/BETA_TEST_GUIDE.md)。
 
 ## 反馈
 
@@ -123,9 +123,9 @@ Windows 版需要 .NET 10 SDK 和 Windows 10/11，构建与测试命令见 [Wind
 
 当前版本已经覆盖核心使用闭环，但仍属于公开测试：
 
-- macOS 应用尚未经过 Developer ID 签名和 Apple 公证；Windows 可执行文件尚未进行代码签名，当前以便携 ZIP 提供；
+- macOS 应用尚未经过 Developer ID 签名和 Apple 公证；Windows 已提供按用户安装的 Setup.exe，但尚未进行代码签名；
 - Windows 版尚需通过 Windows 10/11、x64/ARM64 真机内测验证；
-- 暂无云同步、全局呼出快捷键和自动安装更新；
+- 暂无云同步和全局呼出快捷键；Windows 安装版已接入自动更新，但尚待 Windows 真机验证；
 - 数据尚未加密；
 - macOS 版最低支持 macOS 14；Windows 版主要支持 Windows 11，并尽力兼容 Windows 10 22H2 x64。
 

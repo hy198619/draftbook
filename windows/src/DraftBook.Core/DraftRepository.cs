@@ -128,11 +128,23 @@ public sealed class DraftRepository
 
     private DraftBookSnapshot? RestoreLatestValidBackup()
     {
-        IEnumerable<string> candidates = File.Exists(PreviousFilePath) ? [PreviousFilePath] : [];
-        if (Directory.Exists(BackupDirectory))
+        var candidates = File.Exists(PreviousFilePath) ? new List<string> { PreviousFilePath } : [];
+        try
         {
-            candidates = candidates.Concat(Directory.EnumerateFiles(BackupDirectory, "*.json")
-                .OrderByDescending(File.GetLastWriteTimeUtc));
+            if (Directory.Exists(BackupDirectory))
+            {
+                candidates.AddRange(Directory.EnumerateFiles(BackupDirectory, "*.json")
+                    .OrderByDescending(File.GetLastWriteTimeUtc));
+            }
+        }
+        catch (IOException)
+        {
+            // The previous snapshot can still be used if the backup directory
+            // itself is temporarily unavailable.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Same rationale as above.
         }
 
         foreach (var path in candidates)

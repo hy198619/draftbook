@@ -27,6 +27,7 @@ jobs:
         with:
           dotnet-version: "10.0.x"
       - run: dotnet test tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj -c Release
+      - run: dotnet test tests/DraftBook.Windows.Tests/DraftBook.Windows.Tests.csproj -c Release
 
   publish:
     strategy:

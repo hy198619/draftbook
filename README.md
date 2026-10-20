@@ -37,13 +37,15 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 ## 下载
 
-请按系统下载对应版本。**【重要提醒】Windows版目前问题较多，正在修复中，不建议下载！如果有意帮助测试改进，请联系作者：magicyangyuxuan**
+请按系统下载对应版本。macOS 仍为 `0.9.6`，Windows 使用独立的 `0.9.6-preview.3` 内测发布通道：
+
+**【重要提醒】Windows版目前问题较多，正在修复中，不建议下载！如果有意帮助测试改进，请联系作者：magicyangyuxuan**
 
 | 系统 | 下载 | 适用设备 | 状态与说明 |
 | --- | --- | --- | --- |
 | macOS | [`DraftBook-v0.9.6-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.6/DraftBook-v0.9.6-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
-| Windows x64 | [`DraftBook-v0.9.6-preview.2-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.2/DraftBook-v0.9.6-preview.2-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
-| Windows ARM64 | [`DraftBook-v0.9.6-preview.2-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.2/DraftBook-v0.9.6-preview.2-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
+| Windows x64 | [`DraftBook-v0.9.6-preview.3-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.3/DraftBook-v0.9.6-preview.3-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
+| Windows ARM64 | [`DraftBook-v0.9.6-preview.3-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.3/DraftBook-v0.9.6-preview.3-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 
 macOS 首次打开需要在“系统设置 → 隐私与安全性”中选择“仍要打开”。Windows 运行安装程序后，桌面和开始菜单都会创建“DraftBook 草稿本”快捷方式；如果 SmartScreen 拦截，请先核对 SHA-256，再选择“更多信息 → 仍要运行”。
 

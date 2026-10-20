@@ -12,14 +12,16 @@ public sealed class DraftCard : Border
 {
     private readonly DraftBookState state;
     private readonly Guid draftId;
+    private readonly string section;
     private readonly Action refresh;
     private readonly Grid bodyHost = new();
     private bool editing;
 
-    public DraftCard(DraftBookState state, Draft draft, string section, Action refresh)
+    public DraftCard(DraftBookState state, Draft draft, string section, Action refresh, Action openLabelSettings)
     {
         this.state = state;
         draftId = draft.Id;
+        this.section = section;
         this.refresh = refresh;
         Background = Brushes.Transparent;
         BorderBrush = SystemColors.ControlLightBrush;
@@ -28,7 +30,7 @@ public sealed class DraftCard : Border
         Padding = new Thickness(0, 7, 0, 10);
 
         var stack = new StackPanel();
-        stack.Children.Add(BuildHeader(draft, section));
+        stack.Children.Add(BuildHeader(draft, section, openLabelSettings));
         if (draft.State == DraftState.Archived)
         {
             stack.Children.Add(BuildTitleEditor(draft));
@@ -38,7 +40,7 @@ public sealed class DraftCard : Border
         ShowPreview(draft.Content);
     }
 
-    private UIElement BuildHeader(Draft draft, string section)
+    private UIElement BuildHeader(Draft draft, string section, Action openLabelSettings)
     {
         var grid = new Grid { Height = 30 };
         grid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -78,9 +80,12 @@ public sealed class DraftCard : Border
                 tagMark.Background = TagBrush(draft);
                 tag.ToolTip = state.LabelName(color);
                 AutomationProperties.SetName(tag, $"更换草稿标签，当前为{state.LabelName(color)}");
+                Dispatcher.BeginInvoke(refresh, System.Windows.Threading.DispatcherPriority.Background);
             };
             tagMenu.Items.Add(choice);
         }
+        tagMenu.Items.Add(new Separator());
+        tagMenu.Items.Add(MenuAction("自定义分类名称…", openLabelSettings));
         tag.ContextMenu = tagMenu;
         tag.Click += (_, _) =>
         {
@@ -217,12 +222,22 @@ public sealed class DraftCard : Border
     {
         editing = false;
         bodyHost.Children.Clear();
-        var preview = new MarkdownPreview(content)
+        UIElement preview;
+        try
         {
-            Margin = new Thickness(4, 5, 4, 2),
-            ToolTip = "单击编辑原文；Ctrl+单击链接打开；复制保留 Markdown 语法",
-        };
-        preview.LinkOpenRequested += (_, uri) => LinkLauncher.Open(Window.GetWindow(this), uri);
+            var markdown = new MarkdownPreview(content)
+            {
+                Margin = new Thickness(4, 5, 4, 2),
+                ToolTip = "单击编辑原文；Ctrl+单击链接打开；复制保留 Markdown 语法",
+            };
+            markdown.LinkOpenRequested += (_, uri) => LinkLauncher.Open(Window.GetWindow(this), uri);
+            preview = markdown;
+        }
+        catch (Exception exception) when (IsRecoverablePreviewException(exception))
+        {
+            preview = BuildPlainTextFallback(content);
+        }
+
         preview.PreviewMouseLeftButtonDown += (_, args) =>
         {
             if (!Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
@@ -233,6 +248,33 @@ public sealed class DraftCard : Border
         };
         bodyHost.Children.Add(preview);
     }
+
+    private static UIElement BuildPlainTextFallback(string content)
+    {
+        var panel = new StackPanel
+        {
+            Margin = new Thickness(4, 5, 4, 2),
+            ToolTip = "单击编辑原文",
+        };
+        panel.Children.Add(new TextBlock
+        {
+            Text = content,
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 14,
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "预览异常，已安全显示原文；单击可继续编辑",
+            TextWrapping = TextWrapping.Wrap,
+            FontSize = 11,
+            Foreground = SystemColors.GrayTextBrush,
+            Margin = new Thickness(0, 6, 0, 0),
+        });
+        return panel;
+    }
+
+    private static bool IsRecoverablePreviewException(Exception exception) =>
+        exception is InvalidOperationException or ArgumentException or NotSupportedException or UriFormatException;
 
     private void BeginEditing()
     {
@@ -260,6 +302,13 @@ public sealed class DraftCard : Border
             if (editing)
             {
                 ShowPreview(state.Find(draftId)?.Content ?? string.Empty);
+                if (section == "due")
+                {
+                    // Editing restarts the cleanup clock, so the card no longer
+                    // belongs in the due view. Refresh after the current input
+                    // event finishes to avoid disrupting the focus transition.
+                    Dispatcher.BeginInvoke(refresh, System.Windows.Threading.DispatcherPriority.Background);
+                }
             }
         };
         bodyHost.Children.Add(editor);

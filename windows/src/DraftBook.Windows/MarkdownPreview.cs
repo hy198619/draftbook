@@ -5,10 +5,14 @@ using System.Windows.Documents;
 using System.Windows.Input;
 using System.Windows.Media;
 using Markdig;
+using Markdig.Extensions.Tables;
+using Markdig.Extensions.TaskLists;
 using Markdig.Syntax;
 using Markdig.Syntax.Inlines;
 using MarkdownBlock = Markdig.Syntax.Block;
+using MarkdownTable = Markdig.Extensions.Tables.Table;
 using WpfInline = System.Windows.Documents.Inline;
+using WpfTable = System.Windows.Documents.Table;
 
 namespace DraftBook.Windows;
 
@@ -91,6 +95,9 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             case ListBlock list:
                 target.Blocks.Add(RenderList(list));
                 break;
+            case MarkdownTable table:
+                target.Blocks.Add(RenderTable(table));
+                break;
             case FencedCodeBlock fenced:
                 target.Blocks.Add(CodeParagraph(fenced.Lines.ToString()));
                 break;
@@ -137,14 +144,18 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             var listItem = new ListItem();
             foreach (var child in item)
             {
-                switch (child)
+                if (child is ListBlock nested)
                 {
-                    case ParagraphBlock paragraph:
-                        listItem.Blocks.Add(ParagraphFor(paragraph.Inline));
-                        break;
-                    case ListBlock nested:
-                        listItem.Blocks.Add(RenderList(nested));
-                        break;
+                    listItem.Blocks.Add(RenderList(nested));
+                    continue;
+                }
+
+                var temporary = new FlowDocument();
+                AddBlock(temporary, child);
+                while (temporary.Blocks.FirstBlock is { } first)
+                {
+                    temporary.Blocks.Remove(first);
+                    listItem.Blocks.Add(first);
                 }
             }
             result.ListItems.Add(listItem);
@@ -165,20 +176,31 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
         return paragraph;
     }
 
-    private WpfInline RenderInline(Markdig.Syntax.Inlines.Inline inline)
+    private WpfInline RenderInline(Markdig.Syntax.Inlines.Inline inline, bool detectBareLinks = true)
     {
         switch (inline)
         {
             case LiteralInline literal:
-                return RenderTextWithBareLinks(literal.Content.ToString());
+                return detectBareLinks
+                    ? RenderTextWithBareLinks(literal.Content.ToString())
+                    : new Run(literal.Content.ToString());
             case CodeInline code:
                 return new Run(code.Content) { FontFamily = new FontFamily("Cascadia Mono, Consolas"), Background = SystemColors.ControlBrush };
-            case LineBreakInline lineBreak:
-                return lineBreak.IsHard ? new LineBreak() : new Run(" ");
+            case LineBreakInline:
+                // DraftBook is a writing surface rather than a document publishing
+                // tool. Preserve the line the user entered even when CommonMark
+                // classifies it as a soft break.
+                return new LineBreak();
+            case TaskList task:
+                return new Run(task.Checked ? "☑ " : "☐ ");
             case EmphasisInline emphasis:
                 {
                     var span = new Span();
-                    if (emphasis.DelimiterCount >= 2)
+                    if (emphasis.DelimiterChar == '~')
+                    {
+                        span.TextDecorations = TextDecorations.Strikethrough;
+                    }
+                    else if (emphasis.DelimiterCount >= 2)
                     {
                         span.FontWeight = FontWeights.SemiBold;
                     }
@@ -186,21 +208,16 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
                     {
                         span.FontStyle = FontStyles.Italic;
                     }
-                    AddChildren(span, emphasis);
+                    AddChildren(span, emphasis, detectBareLinks);
                     return span;
                 }
             case LinkInline link when !link.IsImage:
                 {
-                    var hyperlink = new Hyperlink { NavigateUri = LinkLauncher.TryNormalize(link.Url, out var uri) ? uri : null };
-                    AddChildren(hyperlink, link);
-                    hyperlink.RequestNavigate += (_, args) =>
-                    {
-                        args.Handled = true;
-                        if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && args.Uri is not null)
-                        {
-                            LinkOpenRequested?.Invoke(this, args.Uri);
-                        }
-                    };
+                    var hyperlink = CreateHyperlink(LinkLauncher.TryNormalize(link.Url, out var uri) ? uri : null);
+                    // Markdig represents an automatic URL as a LinkInline whose
+                    // child is the URL text. Bare-link detection inside that child
+                    // would create Hyperlink inside Hyperlink, which WPF rejects.
+                    AddChildren(hyperlink, link, detectBareLinks: false);
                     return hyperlink;
                 }
             case LinkInline image:
@@ -208,7 +225,7 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             case ContainerInline container:
                 {
                     var span = new Span();
-                    AddChildren(span, container);
+                    AddChildren(span, container, detectBareLinks);
                     return span;
                 }
             default:
@@ -216,11 +233,11 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
         }
     }
 
-    private void AddChildren(Span target, ContainerInline container)
+    private void AddChildren(Span target, ContainerInline container, bool detectBareLinks = true)
     {
         foreach (var child in container)
         {
-            target.Inlines.Add(RenderInline(child));
+            target.Inlines.Add(RenderInline(child, detectBareLinks));
         }
     }
 
@@ -244,15 +261,8 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             {
                 span.Inlines.Add(new Run(text[cursor..match.Index]));
             }
-            var hyperlink = new Hyperlink(new Run(raw)) { NavigateUri = uri };
-            hyperlink.RequestNavigate += (_, args) =>
-            {
-                args.Handled = true;
-                if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && args.Uri is not null)
-                {
-                    LinkOpenRequested?.Invoke(this, args.Uri);
-                }
-            };
+            var hyperlink = CreateHyperlink(uri);
+            hyperlink.Inlines.Add(new Run(raw));
             span.Inlines.Add(hyperlink);
             cursor = match.Index + raw.Length;
         }
@@ -261,6 +271,75 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
             span.Inlines.Add(new Run(text[cursor..]));
         }
         return span;
+    }
+
+    private Hyperlink CreateHyperlink(Uri? uri)
+    {
+        var hyperlink = new Hyperlink { NavigateUri = uri };
+        if (uri is not null)
+        {
+            hyperlink.ToolTip = $"Ctrl+单击打开：{uri}";
+        }
+        hyperlink.RequestNavigate += (_, args) =>
+        {
+            args.Handled = true;
+            if (Keyboard.Modifiers.HasFlag(ModifierKeys.Control) && args.Uri is not null)
+            {
+                LinkOpenRequested?.Invoke(this, args.Uri);
+            }
+        };
+        return hyperlink;
+    }
+
+    private WpfTable RenderTable(MarkdownTable source)
+    {
+        var table = new WpfTable
+        {
+            CellSpacing = 0,
+            Margin = new Thickness(0, 4, 0, 8),
+        };
+        var group = new TableRowGroup();
+        table.RowGroups.Add(group);
+
+        foreach (var sourceRow in source.OfType<Markdig.Extensions.Tables.TableRow>())
+        {
+            var row = new System.Windows.Documents.TableRow();
+            foreach (var sourceCell in sourceRow.OfType<Markdig.Extensions.Tables.TableCell>())
+            {
+                var cell = new System.Windows.Documents.TableCell
+                {
+                    BorderBrush = SystemColors.ControlLightBrush,
+                    BorderThickness = new Thickness(0.5),
+                    Padding = new Thickness(6, 4, 6, 4),
+                    Background = sourceRow.IsHeader ? SystemColors.ControlBrush : Brushes.Transparent,
+                    ColumnSpan = Math.Max(1, sourceCell.ColumnSpan),
+                    RowSpan = Math.Max(1, sourceCell.RowSpan),
+                };
+                var temporary = new FlowDocument();
+                foreach (var child in sourceCell)
+                {
+                    AddBlock(temporary, child);
+                }
+                while (temporary.Blocks.FirstBlock is { } first)
+                {
+                    temporary.Blocks.Remove(first);
+                    if (sourceRow.IsHeader)
+                    {
+                        first.FontWeight = FontWeights.SemiBold;
+                    }
+                    first.Margin = new Thickness(0);
+                    cell.Blocks.Add(first);
+                }
+                if (cell.Blocks.Count == 0)
+                {
+                    cell.Blocks.Add(new Paragraph());
+                }
+                row.Cells.Add(cell);
+            }
+            group.Rows.Add(row);
+        }
+
+        return table;
     }
 
     private static bool TryLinkPrefix(string candidate, out string raw, out Uri? uri)

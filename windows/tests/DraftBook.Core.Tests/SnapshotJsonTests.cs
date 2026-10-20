@@ -24,6 +24,33 @@ public sealed class SnapshotJsonTests
     }
 
     [Fact]
+    public void TextMarkdownWhitespaceAndLinksRoundTripExactly()
+    {
+        const string content = "开头  保留两个空格\r\n\t制表符与换行\n\n" +
+                               "**Markdown 粗体** 和 https://example.com/path?q=草稿\n" +
+                               "[Markdown 链接](https://example.com/docs?id=1#part)";
+        var snapshot = new DraftBookSnapshot
+        {
+            SchemaVersion = DraftBookSnapshot.CurrentSchemaVersion,
+            Composer = content,
+            Drafts =
+            [
+                new Draft
+                {
+                    Content = content,
+                    CreatedAt = DateTimeOffset.UnixEpoch,
+                    UpdatedAt = DateTimeOffset.UnixEpoch,
+                },
+            ],
+        };
+
+        var restored = SnapshotJson.Deserialize(SnapshotJson.Serialize(snapshot));
+
+        Assert.Equal(content, restored.Composer);
+        Assert.Equal(content, restored.Drafts.Single().Content);
+    }
+
+    [Fact]
     public void DatesWriteUtcAtSecondPrecisionAndReadFractionsAndOffsets()
     {
         var json = """

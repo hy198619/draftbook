@@ -73,7 +73,7 @@
                     <ComboBox x:Name="RetentionComboBox" Grid.Column="1" Width="112" />
                 </Grid>
 
-                <TextBlock Text="分类名称" Style="{StaticResource SectionHeadingStyle}" />
+                <TextBlock x:Name="LabelSectionHeading" Text="分类名称" Style="{StaticResource SectionHeadingStyle}" />
                 <TextBlock Text="每个名称最多 12 个字，颜色仍用于快速识别。"
                            FontSize="11"
                            Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"

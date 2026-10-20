@@ -10,6 +10,7 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $PSScriptRoot
 $projectPath = Join-Path $root "src/DraftBook.Windows/DraftBook.Windows.csproj"
 $testProjectPath = Join-Path $root "tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj"
+$windowsTestProjectPath = Join-Path $root "tests/DraftBook.Windows.Tests/DraftBook.Windows.Tests.csproj"
 $updateSmokeProjectPath = Join-Path $root "tests/DraftBook.UpdateSmoke/DraftBook.UpdateSmoke.csproj"
 $publishDirectory = Join-Path $root "artifacts/publish/$Runtime"
 $releaseDirectory = Join-Path $root "artifacts/releases/$Runtime"
@@ -23,7 +24,10 @@ $version = (dotnet msbuild $projectPath -getProperty:Version).Trim()
 $friendlySetupName = "DraftBook-v$version-Windows-$architecture-Setup.exe"
 
 dotnet tool restore --tool-manifest (Join-Path $root ".config/dotnet-tools.json")
-if (-not $SkipTests) { dotnet test $testProjectPath -c $Configuration }
+if (-not $SkipTests) {
+    dotnet test $testProjectPath -c $Configuration
+    dotnet test $windowsTestProjectPath -c $Configuration
+}
 
 if (Test-Path $publishDirectory) { Remove-Item $publishDirectory -Recurse -Force }
 if ((-not $KeepExistingReleases) -and (Test-Path $releaseDirectory)) {

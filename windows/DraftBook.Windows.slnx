@@ -2,4 +2,5 @@
   <Project Path="src/DraftBook.Core/DraftBook.Core.csproj" />
   <Project Path="src/DraftBook.Windows/DraftBook.Windows.csproj" />
   <Project Path="tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj" />
+  <Project Path="tests/DraftBook.Windows.Tests/DraftBook.Windows.Tests.csproj" />
 </Solution>

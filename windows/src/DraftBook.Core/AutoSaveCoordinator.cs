@@ -8,6 +8,7 @@ public sealed class AutoSaveCoordinator : IAsyncDisposable
     private readonly SemaphoreSlim saveGate = new(1, 1);
     private readonly object synchronization = new();
     private readonly HashSet<Task> backgroundTasks = [];
+    private DraftBookSnapshot latestSnapshot;
     private CancellationTokenSource? pendingDelay;
     private bool disposed;
 
@@ -16,6 +17,9 @@ public sealed class AutoSaveCoordinator : IAsyncDisposable
         this.state = state;
         this.repository = repository;
         this.debounce = debounce ?? TimeSpan.FromMilliseconds(280);
+        // DraftBookState is owned by the UI thread. Capture snapshots on the
+        // caller's thread and let background tasks write only detached copies.
+        latestSnapshot = state.ToSnapshot();
         state.Changed += StateChanged;
     }
 
@@ -64,6 +68,7 @@ public sealed class AutoSaveCoordinator : IAsyncDisposable
         CancellationTokenSource cancellation;
         lock (synchronization)
         {
+            latestSnapshot = state.ToSnapshot();
             pendingDelay?.Cancel();
             pendingDelay?.Dispose();
             pendingDelay = new CancellationTokenSource();
@@ -103,9 +108,13 @@ public sealed class AutoSaveCoordinator : IAsyncDisposable
         await saveGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
         {
-            // Capture only after earlier writes finish. Otherwise an older save task can
-            // acquire the gate after a newer one and overwrite the newest snapshot.
-            var snapshot = state.ToSnapshot();
+            DraftBookSnapshot snapshot;
+            lock (synchronization)
+            {
+                // Read only after earlier writes finish. Otherwise an older save task can
+                // acquire the gate after a newer one and overwrite the newest snapshot.
+                snapshot = latestSnapshot;
+            }
             await Task.Run(() => repository.Save(snapshot), cancellationToken).ConfigureAwait(false);
             LastError = null;
             SaveErrorChanged?.Invoke(this, null);

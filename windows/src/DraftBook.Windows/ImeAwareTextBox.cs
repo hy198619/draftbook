@@ -33,10 +33,12 @@ public sealed class ImeAwareTextBox : TextBox
             return;
         }
 
-        if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.Control)
+        if (e.Key == Key.Enter &&
+            Keyboard.Modifiers == ModifierKeys.Control &&
+            CommitRequested is not null)
         {
             e.Handled = true;
-            CommitRequested?.Invoke(this, EventArgs.Empty);
+            CommitRequested.Invoke(this, EventArgs.Empty);
         }
     }
 }

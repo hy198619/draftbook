@@ -27,6 +27,8 @@ jobs:
         run: dotnet tool restore
       - name: Run core tests
         run: dotnet test tests/DraftBook.Core.Tests/DraftBook.Core.Tests.csproj -c Release
+      - name: Run Windows UI logic tests
+        run: dotnet test tests/DraftBook.Windows.Tests/DraftBook.Windows.Tests.csproj -c Release
       - name: Read Windows version
         id: version
         shell: pwsh

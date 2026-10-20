@@ -35,7 +35,7 @@ internal sealed class AppUpdateService
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?
             .InformationalVersion;
         return string.IsNullOrWhiteSpace(informational)
-            ? "0.9.6-preview.2"
+            ? "0.9.6-preview.3"
             : informational.Split('+', 2)[0];
     }
 }

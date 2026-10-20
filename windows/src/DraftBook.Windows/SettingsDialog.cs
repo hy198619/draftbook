@@ -11,7 +11,7 @@ public sealed partial class SettingsDialog : Window
     private readonly DraftBookState state;
     private readonly Dictionary<DraftColor, TextBox> labels = [];
 
-    public SettingsDialog(AppSettings settings, DraftBookState state)
+    public SettingsDialog(AppSettings settings, DraftBookState state, bool showLabelSection = false)
     {
         InitializeComponent();
         this.settings = settings;
@@ -52,18 +52,34 @@ public sealed partial class SettingsDialog : Window
             labels[color] = box;
             LabelPanel.Children.Add(LabelRow(color, box));
         }
+
+        if (showLabelSection)
+        {
+            Loaded += (_, _) =>
+            {
+                LabelSectionHeading.BringIntoView();
+                if (labels.Values.FirstOrDefault() is { } firstLabel)
+                {
+                    firstLabel.Focus();
+                    firstLabel.SelectAll();
+                }
+            };
+        }
     }
 
     private void Save_Click(object sender, RoutedEventArgs e)
     {
         try
         {
+            // Validate the labels before mutating the shared settings object. If
+            // validation fails and the user cancels, none of their other choices
+            // should leak out of the dialog and be saved later on app exit.
+            state.SetLabelNames(labels.ToDictionary(pair => pair.Key, pair => pair.Value.Text));
             settings.Topmost = TopmostCheckBox.IsChecked == true;
             settings.AutomaticUpdatesEnabled = UpdatesCheckBox.IsChecked == true;
             settings.AutomaticBackupsEnabled = BackupsCheckBox.IsChecked == true;
             settings.DefaultReviewDays = (ReviewDaysComboBox.SelectedItem as ComboBoxItem)?.Tag as int? ?? 7;
             settings.BackupRetentionCount = (RetentionComboBox.SelectedItem as ComboBoxItem)?.Tag as int? ?? 14;
-            state.SetLabelNames(labels.ToDictionary(pair => pair.Key, pair => pair.Value.Text));
             DialogResult = true;
         }
         catch (DraftBookValidationException exception)

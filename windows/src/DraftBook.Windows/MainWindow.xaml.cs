@@ -147,7 +147,7 @@ public partial class MainWindow : Window
         DraftPanel.Children.Clear();
         foreach (var draft in drafts)
         {
-            DraftPanel.Children.Add(new DraftCard(state, draft, section, RefreshDrafts));
+            DraftPanel.Children.Add(new DraftCard(state, draft, section, RefreshDrafts, OpenLabelSettings));
         }
         if (drafts.Count == 0)
         {
@@ -383,14 +383,32 @@ public partial class MainWindow : Window
     }
 
     private void Settings_Click(object sender, RoutedEventArgs e)
+        => OpenSettings(showLabelSection: false);
+
+    private void OpenLabelSettings()
     {
-        var dialog = new SettingsDialog(settings, state) { Owner = this };
+        // Let the context menu close before opening a modal window.
+        Dispatcher.BeginInvoke(() => OpenSettings(showLabelSection: true), DispatcherPriority.ContextIdle);
+    }
+
+    private void OpenSettings(bool showLabelSection)
+    {
+        var dialog = new SettingsDialog(settings, state, showLabelSection) { Owner = this };
         if (dialog.ShowDialog() != true)
         {
             return;
         }
         settings.Normalize();
-        settingsStore.Save(settings);
+        try
+        {
+            settingsStore.Save(settings);
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            MessageBox.Show(this,
+                $"设置已在本次运行中生效，但无法写入磁盘：\n{exception.Message}",
+                "无法保存设置", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
         Topmost = settings.Topmost;
         PinButton.IsChecked = Topmost;
         repository.Configure(settings.AutomaticBackupsEnabled, settings.BackupRetentionCount);
@@ -535,8 +553,16 @@ public partial class MainWindow : Window
         var dialog = new SaveFileDialog { FileName = $"DraftBook-Backup-{DateTime.Now:yyyyMMdd}.json", Filter = "JSON|*.json" };
         if (dialog.ShowDialog(this) == true)
         {
-            File.WriteAllBytes(dialog.FileName, repository.FullBackup(state.ToSnapshot()));
-            ShowStatus("完整备份已导出");
+            try
+            {
+                File.WriteAllBytes(dialog.FileName, repository.FullBackup(state.ToSnapshot()));
+                ShowStatus("完整备份已导出");
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException or DraftBookDataException)
+            {
+                MessageBox.Show(this, $"无法导出完整备份：\n{exception.Message}", "导出失败",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 
@@ -576,8 +602,16 @@ public partial class MainWindow : Window
         var dialog = new SaveFileDialog { FileName = fileName, Filter = filter };
         if (dialog.ShowDialog(this) == true)
         {
-            File.WriteAllText(dialog.FileName, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
-            ShowStatus("已导出");
+            try
+            {
+                File.WriteAllText(dialog.FileName, content, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+                ShowStatus("已导出");
+            }
+            catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+            {
+                MessageBox.Show(this, $"无法导出文件：\n{exception.Message}", "导出失败",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
         }
     }
 

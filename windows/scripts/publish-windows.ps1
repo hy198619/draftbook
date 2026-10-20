@@ -57,6 +57,7 @@ dotnet tool run vpk -- `
     --mainExe DraftBook.exe `
     --shortcuts Desktop,StartMenuRoot `
     --splashProgressColor "#E85C4A" `
+    --delta none `
     --noPortable
 
 $generatedSetupPath = Join-Path $releaseDirectory "com.yangyuxuan.DraftBook-$channel-Setup.exe"

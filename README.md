@@ -14,7 +14,7 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 它是文字的临时中转站，不是另一个等着你认真整理和长期维护的知识库。
 
-> 当前为 `0.9.6 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
+> macOS 当前为 `0.9.7 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
 
 ## 适合记录什么
 
@@ -37,13 +37,13 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 ## 下载
 
-请按系统下载对应版本。macOS 仍为 `0.9.6`，Windows 使用独立的 `0.9.6-preview.3` 内测发布通道：
+请按系统下载对应版本。macOS 为 `0.9.7`，Windows 使用独立的 `0.9.6-preview.3` 内测发布通道：
 
 **【重要提醒】Windows版目前问题较多，正在修复中，不建议下载！如果有意帮助测试改进，请联系作者：magicyangyuxuan**
 
 | 系统 | 下载 | 适用设备 | 状态与说明 |
 | --- | --- | --- | --- |
-| macOS | [`DraftBook-v0.9.6-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.6/DraftBook-v0.9.6-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
+| macOS | [`DraftBook-v0.9.7-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.7/DraftBook-v0.9.7-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
 | Windows x64 | [`DraftBook-v0.9.6-preview.3-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.3/DraftBook-v0.9.6-preview.3-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 | Windows ARM64 | [`DraftBook-v0.9.6-preview.3-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.3/DraftBook-v0.9.6-preview.3-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 

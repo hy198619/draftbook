@@ -39,6 +39,32 @@ final class MarkdownPreviewTests: XCTestCase {
         XCTAssertTrue(nodes[4] is ThematicBreak)
     }
 
+    func testUnprefixedLineAfterQuoteStartsANewBlockWithoutExtraBlankLine() {
+        let source = "> 引用\n[百度](www.baidu.com)"
+        let document = MarkdownDraftPreview.document(for: source)
+        let nodes = Array(document.children)
+        let preview = MarkdownDraftPreview(source: source)
+
+        XCTAssertEqual(nodes.count, 2)
+        XCTAssertTrue(nodes[0] is BlockQuote)
+        XCTAssertEqual(preview.nativeInline(nodes[0]).string, "引用")
+        XCTAssertTrue(nodes[1] is Paragraph)
+        XCTAssertEqual(preview.nativeInline(nodes[1]).string, "百度")
+    }
+
+    func testConsecutiveExplicitQuoteLinesStayInOneQuote() {
+        let source = "> 第一行\n> 第二行\n普通段落"
+        let document = MarkdownDraftPreview.document(for: source)
+        let nodes = Array(document.children)
+        let preview = MarkdownDraftPreview(source: source)
+
+        XCTAssertEqual(nodes.count, 2)
+        XCTAssertTrue(nodes[0] is BlockQuote)
+        XCTAssertEqual(preview.nativeInline(nodes[0]).string, "第一行\n第二行")
+        XCTAssertTrue(nodes[1] is Paragraph)
+        XCTAssertEqual(preview.nativeInline(nodes[1]).string, "普通段落")
+    }
+
     func testUnclosedEmphasisStaysLiteral() {
         let source = "普通 **未闭合文字"
         XCTAssertEqual(String(MarkdownDraftPreview(source: source).inline(Document(parsing: source)).characters), source)

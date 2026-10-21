@@ -269,6 +269,41 @@ final class DraftScrollView: NSScrollView {
 final class DraftTextView: NSTextView {
     private var outsideClickMonitor: Any?
 
+    override func acceptsFirstMouse(for event: NSEvent?) -> Bool {
+        InteractionDiagnostics.record(
+            "editor.acceptsFirstMouse",
+            window: window,
+            details: "eventWindow=\(event?.windowNumber ?? -1)"
+        )
+        return true
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        InteractionDiagnostics.record("editor.mouseDown.before", window: window)
+        NSApp.activate()
+        window?.makeKeyAndOrderFront(nil)
+        super.mouseDown(with: event)
+        InteractionDiagnostics.record("editor.mouseDown.afterSuper", window: window)
+        if window?.firstResponder !== self {
+            let accepted = window?.makeFirstResponder(self) ?? false
+            InteractionDiagnostics.record(
+                "editor.mouseDown.forceFirstResponder",
+                window: window,
+                details: "accepted=\(accepted)"
+            )
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let window = self.window else { return }
+            if !window.isKeyWindow {
+                window.makeKeyAndOrderFront(nil)
+            }
+            if window.firstResponder !== self {
+                window.makeFirstResponder(self)
+            }
+            InteractionDiagnostics.record("editor.mouseDown.nextRunLoop", window: window)
+        }
+    }
+
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
         if let outsideClickMonitor { NSEvent.removeMonitor(outsideClickMonitor) }
@@ -293,6 +328,11 @@ final class DraftTextView: NSTextView {
 
     override func becomeFirstResponder() -> Bool {
         let didBecomeFirstResponder = super.becomeFirstResponder()
+        InteractionDiagnostics.record(
+            "editor.becomeFirstResponder",
+            window: window,
+            details: "accepted=\(didBecomeFirstResponder)"
+        )
         if didBecomeFirstResponder {
             focusChanged?(true, string)
         }
@@ -301,6 +341,11 @@ final class DraftTextView: NSTextView {
 
     override func resignFirstResponder() -> Bool {
         let didResignFirstResponder = super.resignFirstResponder()
+        InteractionDiagnostics.record(
+            "editor.resignFirstResponder",
+            window: window,
+            details: "accepted=\(didResignFirstResponder)"
+        )
         if didResignFirstResponder {
             focusChanged?(false, string)
         }

@@ -21,8 +21,16 @@ struct MainView: View {
     }
 
     @EnvironmentObject private var store: DraftStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @AppStorage("keepWindowOnTop") private var keepWindowOnTop = true
+    @AppStorage(AppPreferenceKeys.autoHideWindowAtScreenEdge) private var autoHideWindowAtScreenEdge = true
     @State private var composerFocused = true
+    @State private var appIsActive = NSApp.isActive
+    @State private var headerVisible = false
+    @State private var headerRegionHovered = false
+    @State private var titlebarRegionHovered = false
+    @State private var headerRevealTask: Task<Void, Never>?
+    @State private var headerHideTask: Task<Void, Never>?
     @State private var section: Section = .drafts
     @State private var searchVisible = false
     @State private var searchQuery = ""
@@ -41,7 +49,7 @@ struct MainView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            headerRegion
             if searchVisible {
                 searchBar
             }
@@ -60,14 +68,26 @@ struct MainView: View {
             }
             .padding(.bottom, 12)
         }
-        .background(WindowConfigurator(floating: keepWindowOnTop))
+        .background(
+            WindowConfigurator(
+                floating: keepWindowOnTop,
+                autoHideAtScreenEdge: autoHideWindowAtScreenEdge,
+                onTopEdgeHoverChanged: handleTitlebarRegionHover
+            )
+        )
         .onAppear {
             composerFocused = true
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
+            appIsActive = false
             store.flush()
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            appIsActive = true
+        }
         .onDisappear {
+            headerRevealTask?.cancel()
+            headerHideTask?.cancel()
             store.flush()
         }
         .onReceive(NotificationCenter.default.publisher(for: .draftBookShowSearch)) { _ in
@@ -103,19 +123,65 @@ struct MainView: View {
         }
     }
 
+    private var headerRegion: some View {
+        VStack(spacing: 0) {
+            if headerVisible || headerMustRemainVisible {
+                header
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            } else {
+                Color.clear
+                    .frame(height: 8)
+                    .accessibilityHidden(true)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .contentShape(Rectangle())
+        .onHover(perform: handleHeaderRegionHover)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: headerVisible)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: headerMustRemainVisible)
+    }
+
+    private var headerMustRemainVisible: Bool {
+        searchVisible || showingSectionPicker
+    }
+
+    private func handleHeaderRegionHover(_ hovering: Bool) {
+        headerRegionHovered = hovering
+        handleHeaderHover(headerRegionHovered || titlebarRegionHovered)
+    }
+
+    private func handleTitlebarRegionHover(_ hovering: Bool) {
+        titlebarRegionHovered = hovering
+        handleHeaderHover(headerRegionHovered || titlebarRegionHovered)
+    }
+
+    private func handleHeaderHover(_ hovering: Bool) {
+        if hovering {
+            headerHideTask?.cancel()
+            guard !headerVisible else { return }
+            headerRevealTask?.cancel()
+            headerRevealTask = Task { @MainActor in
+                try? await Task.sleep(for: .seconds(1))
+                guard !Task.isCancelled else { return }
+                headerVisible = true
+            }
+        } else {
+            headerRevealTask?.cancel()
+            guard !headerMustRemainVisible else { return }
+            headerHideTask?.cancel()
+            headerHideTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(350))
+                guard !Task.isCancelled, !headerMustRemainVisible else { return }
+                headerVisible = false
+            }
+        }
+    }
+
     private var header: some View {
         HStack(spacing: 10) {
             sectionMenu
 
             Spacer()
-
-            if section == .drafts && !searchVisible {
-                Text("写完一条，记得⌘+↵划定草稿")
-                    .font(.system(size: 11, design: .rounded))
-                    .foregroundStyle(.tertiary)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
-            }
 
             if section == .archive && !searchVisible {
                 colorFilterMenu
@@ -260,7 +326,11 @@ struct MainView: View {
                 .environmentObject(store)
         }
 
-        if !isFiltering && store.orderedDrafts.isEmpty && store.composer.isEmpty {
+        if !isFiltering,
+           store.orderedDrafts.isEmpty,
+           store.composer.isEmpty,
+           composerFocused,
+           appIsActive {
             emptyHint
         } else if isFiltering && store.drafts(in: .active, matching: searchQuery, color: selectedColor).isEmpty {
             noSearchResults
@@ -435,10 +505,10 @@ struct MainView: View {
 
     private var composer: some View {
         ZStack(alignment: .topLeading) {
-            if store.composer.isEmpty && !composerFocused {
-                Text("直接写下来……")
+            if store.composer.isEmpty && (!composerFocused || !appIsActive) {
+                Text("写完一条，记得 ⌘+↵ 划定草稿")
                     .font(.system(size: 15))
-                    .foregroundStyle(.quaternary)
+                    .foregroundStyle(.tertiary)
                     .padding(.top, 15)
                     .allowsHitTesting(false)
             }
@@ -457,14 +527,10 @@ struct MainView: View {
     }
 
     private var emptyHint: some View {
-        VStack(spacing: 7) {
-            Image(systemName: "arrow.up")
-                .foregroundStyle(.quaternary)
-            Text("输入后按 ⌘↩︎，完成这一段，开始下一段")
-                .font(.system(size: 12))
-                .foregroundStyle(.tertiary)
-                .multilineTextAlignment(.center)
-        }
+        Text("写完一条，记得 ⌘+↵ 划定草稿")
+            .font(.system(size: 12))
+            .foregroundStyle(.tertiary)
+            .multilineTextAlignment(.center)
         .frame(maxWidth: .infinity)
         .padding(.top, 32)
     }
@@ -585,6 +651,8 @@ struct MainView: View {
     }
 
     private func showSearch() {
+        headerRevealTask?.cancel()
+        headerVisible = true
         searchVisible = true
         composerFocused = false
         DispatchQueue.main.async {

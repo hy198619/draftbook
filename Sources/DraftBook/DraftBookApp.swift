@@ -9,6 +9,7 @@ struct DraftBookApp: App {
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
             AppPreferenceKeys.keepWindowOnTop: true,
+            AppPreferenceKeys.autoHideWindowAtScreenEdge: true,
             AppPreferenceKeys.defaultReviewDays: 7,
             AppPreferenceKeys.automaticBackupsEnabled: true,
             AppPreferenceKeys.backupRetentionCount: 14

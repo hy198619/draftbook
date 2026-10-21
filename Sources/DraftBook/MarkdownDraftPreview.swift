@@ -9,10 +9,50 @@ struct MarkdownDraftPreview: View {
     var onEdit: () -> Void = {}
 
     var body: some View {
-        blocks(Document(parsing: source, options: [.disableSmartOpts]))
+        blocks(Self.document(for: source))
             .font(.system(size: 14))
             .lineSpacing(3)
             .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    /// DraftBook treats block quotes as explicit, line-prefixed blocks. CommonMark
+    /// otherwise permits an unprefixed line to lazily continue the quote paragraph,
+    /// which makes the line after `> 引用` look quoted until the user inserts a
+    /// blank line. Add that block boundary only for rendering and keep the stored
+    /// source untouched.
+    static func document(for source: String) -> Document {
+        Document(parsing: sourceWithExplicitBlockQuoteBoundaries(source), options: [.disableSmartOpts])
+    }
+
+    static func sourceWithExplicitBlockQuoteBoundaries(_ source: String) -> String {
+        let lines = source.components(separatedBy: "\n")
+        guard lines.count > 1 else { return source }
+
+        var result: [String] = []
+        result.reserveCapacity(lines.count)
+        var previousLineWasExplicitQuote = false
+
+        for line in lines {
+            let isBlank = line.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            let isExplicitQuote = lineIsExplicitBlockQuote(line)
+            if previousLineWasExplicitQuote, !isBlank, !isExplicitQuote {
+                result.append("")
+            }
+            result.append(line)
+            previousLineWasExplicitQuote = isExplicitQuote
+        }
+
+        return result.joined(separator: "\n")
+    }
+
+    private static func lineIsExplicitBlockQuote(_ line: String) -> Bool {
+        var index = line.startIndex
+        var leadingSpaces = 0
+        while index < line.endIndex, line[index] == " ", leadingSpaces < 4 {
+            leadingSpaces += 1
+            index = line.index(after: index)
+        }
+        return leadingSpaces <= 3 && index < line.endIndex && line[index] == ">"
     }
 
     private func blocks(_ node: any Markup) -> AnyView {

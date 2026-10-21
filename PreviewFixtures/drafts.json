@@ -1,0 +1,52 @@
+{
+  "composer" : "",
+  "drafts" : [
+    {
+      "color" : "yellow",
+      "content" : "\nhttps:\/\/chat.deepseek.com\/",
+      "createdAt" : "2026-10-21T00:33:55Z",
+      "id" : "A9B179CC-8046-4CB7-8EF0-793D5A79AF05",
+      "isSample" : false,
+      "markdownEnabled" : false,
+      "pinned" : false,
+      "reviewAt" : "2026-10-28T00:33:55Z",
+      "reviewIntervalDays" : 7,
+      "state" : "active",
+      "updatedAt" : "2026-10-21T00:33:55Z"
+    },
+    {
+      "color" : "blue",
+      "content" : "# 一级标题\n## 二级标题\n### 三级标题\n---\n- 分点1\n- 分点2\n**加粗**\n*斜体*\n> 引用\n[百度](www.baidu.com)",
+      "createdAt" : "2026-10-21T00:33:34Z",
+      "id" : "F4A5CC88-CB7C-49C8-ABE3-F1E878C8AF2F",
+      "isSample" : false,
+      "markdownEnabled" : false,
+      "pinned" : false,
+      "reviewAt" : "2026-10-28T00:33:34Z",
+      "reviewIntervalDays" : 7,
+      "state" : "active",
+      "updatedAt" : "2026-10-21T00:33:34Z"
+    },
+    {
+      "color" : "purple",
+      "content" : "第一行\n\n空一行换第二行\n换第三行",
+      "createdAt" : "2026-10-21T00:33:16Z",
+      "id" : "33CABD6E-C3CE-4970-AE2B-F2DC04EF2669",
+      "isSample" : false,
+      "markdownEnabled" : false,
+      "pinned" : false,
+      "reviewAt" : "2026-10-28T00:33:16Z",
+      "reviewIntervalDays" : 7,
+      "state" : "active",
+      "updatedAt" : "2026-10-21T00:33:16Z"
+    }
+  ],
+  "labelNames" : {
+    "blue" : "分类2",
+    "green" : "分类4",
+    "purple" : "分类3",
+    "red" : "分类5",
+    "yellow" : "备忘"
+  },
+  "schemaVersion" : 5
+}

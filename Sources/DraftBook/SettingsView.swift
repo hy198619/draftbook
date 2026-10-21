@@ -4,6 +4,7 @@ import SwiftUI
 
 enum AppPreferenceKeys {
     static let keepWindowOnTop = "keepWindowOnTop"
+    static let autoHideWindowAtScreenEdge = "autoHideWindowAtScreenEdge"
     static let settingsSelectedTab = "settingsSelectedTab"
     static let defaultReviewDays = "defaultReviewDays"
     static let automaticBackupsEnabled = "automaticBackupsEnabled"
@@ -15,6 +16,7 @@ struct SettingsView: View {
 
     @AppStorage(AppPreferenceKeys.settingsSelectedTab) private var selectedTab = "general"
     @AppStorage(AppPreferenceKeys.keepWindowOnTop) private var keepWindowOnTop = true
+    @AppStorage(AppPreferenceKeys.autoHideWindowAtScreenEdge) private var autoHideWindowAtScreenEdge = true
     @AppStorage(AppPreferenceKeys.defaultReviewDays) private var defaultReviewDays = 7
     @AppStorage(AppPreferenceKeys.automaticBackupsEnabled) private var automaticBackupsEnabled = true
     @AppStorage(AppPreferenceKeys.backupRetentionCount) private var backupRetentionCount = 14
@@ -50,6 +52,10 @@ struct SettingsView: View {
         Form {
             Section("窗口") {
                 Toggle("保持草稿本窗口在最上方", isOn: $keepWindowOnTop)
+                Toggle("贴近屏幕左右边缘时自动收起", isOn: $autoHideWindowAtScreenEdge)
+                Text("窗口收起后会保留一条窄边；鼠标移到窄边即可呼出。当前版本按单显示器使用场景设计。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
             }
 
             Section("草稿生命周期") {

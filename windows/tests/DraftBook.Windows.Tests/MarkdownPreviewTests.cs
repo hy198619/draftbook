@@ -2,6 +2,7 @@ using System.Runtime.ExceptionServices;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Documents;
+using System.Windows.Input;
 using DraftBook.Core;
 using DraftBook.Windows;
 

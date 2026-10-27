@@ -60,8 +60,13 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
     private ScrollViewer? FindOuterScrollViewer()
     {
         DependencyObject? ancestor = this;
-        while ((ancestor = VisualTreeHelper.GetParent(ancestor)) is not null)
+        while (ancestor is not null)
         {
+            // Before a control is fully loaded it can already have a logical
+            // parent while its visual parent has not been created yet. Support
+            // both trees so wheel forwarding stays deterministic in startup and
+            // in the regression test.
+            ancestor = VisualTreeHelper.GetParent(ancestor) ?? LogicalTreeHelper.GetParent(ancestor);
             if (ancestor is ScrollViewer viewer)
             {
                 return viewer;

@@ -38,6 +38,39 @@ public sealed partial class MarkdownPreview : FlowDocumentScrollViewer
 
     public event EventHandler<Uri>? LinkOpenRequested;
 
+    protected override void OnPreviewMouseWheel(MouseWheelEventArgs e)
+    {
+        // FlowDocumentScrollViewer owns an internal ScrollViewer. Even though its
+        // scrollbars are disabled here, that nested viewer can consume the wheel
+        // event before the draft list receives it. Forward one equivalent event to
+        // the outer viewer so scrolling behaves consistently over the whole card.
+        if (!e.Handled && FindOuterScrollViewer() is { } outerViewer)
+        {
+            e.Handled = true;
+            outerViewer.RaiseEvent(new MouseWheelEventArgs(e.MouseDevice, e.Timestamp, e.Delta)
+            {
+                RoutedEvent = UIElement.MouseWheelEvent,
+            });
+            return;
+        }
+
+        base.OnPreviewMouseWheel(e);
+    }
+
+    private ScrollViewer? FindOuterScrollViewer()
+    {
+        DependencyObject? ancestor = this;
+        while ((ancestor = VisualTreeHelper.GetParent(ancestor)) is not null)
+        {
+            if (ancestor is ScrollViewer viewer)
+            {
+                return viewer;
+            }
+        }
+
+        return null;
+    }
+
     private FlowDocument Render(string source)
     {
         var document = new FlowDocument

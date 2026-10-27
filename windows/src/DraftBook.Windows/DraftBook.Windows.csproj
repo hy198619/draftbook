@@ -13,9 +13,9 @@
     <Product>DraftBook 草稿本</Product>
     <Description>面向电脑深度工作场景的轻量草稿工具</Description>
     <Authors>杨昱轩</Authors>
-    <Version>0.9.6-preview.3</Version>
+    <Version>0.9.6-preview.4</Version>
     <AssemblyVersion>0.9.6.0</AssemblyVersion>
-    <FileVersion>0.9.6.3</FileVersion>
+    <FileVersion>0.9.6.4</FileVersion>
     <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
     <NoWarn>$(NoWarn);WPF0001</NoWarn>
   </PropertyGroup>

@@ -86,6 +86,30 @@ public sealed class MarkdownPreviewTests
         });
     }
 
+    [Fact]
+    public void MouseWheelOverPreviewIsForwardedOnceToOuterScrollViewer()
+    {
+        RunOnSta(() =>
+        {
+            var preview = new MarkdownPreview("一条用于滚动测试的合成草稿");
+            var outerViewer = new ScrollViewer { Content = preview };
+            var forwardedCount = 0;
+            outerViewer.AddHandler(
+                UIElement.MouseWheelEvent,
+                new MouseWheelEventHandler((_, _) => forwardedCount++),
+                handledEventsToo: true);
+
+            var wheel = new MouseWheelEventArgs(Mouse.PrimaryDevice, Environment.TickCount, -120)
+            {
+                RoutedEvent = UIElement.PreviewMouseWheelEvent,
+            };
+            preview.RaiseEvent(wheel);
+
+            Assert.True(wheel.Handled);
+            Assert.Equal(1, forwardedCount);
+        });
+    }
+
     private static IEnumerable<Inline> InlineDescendants(FlowDocument document)
     {
         foreach (var paragraph in Blocks(document.Blocks).OfType<Paragraph>())

@@ -200,7 +200,9 @@
                       Margin="16,0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
-                      CanContentScroll="True">
+                      CanContentScroll="False">
+            <!-- Draft cards have variable heights. Physical (pixel) scrolling keeps
+                 wheel movement consistent instead of jumping by whole cards. -->
             <StackPanel x:Name="DraftPanel" />
         </ScrollViewer>
 

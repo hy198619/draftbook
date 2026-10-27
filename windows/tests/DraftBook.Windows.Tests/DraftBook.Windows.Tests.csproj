@@ -17,6 +17,12 @@
     <ProjectReference Include="../../src/DraftBook.Windows/DraftBook.Windows.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../../src/DraftBook.Windows/MainWindow.xaml"
+          Link="Fixtures/MainWindow.xaml"
+          TargetPath="Fixtures/MainWindow.xaml"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

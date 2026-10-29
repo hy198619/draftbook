@@ -16,7 +16,7 @@ enum InteractionDiagnostics {
         let windowNumber = window?.windowNumber ?? -1
         let line = [
             event,
-            "appActive=\(NSApp.isActive)",
+            "appActive=\(ApplicationRuntime.isActive())",
             "window=\(windowNumber)",
             "visible=\(window?.isVisible ?? false)",
             "key=\(window?.isKeyWindow ?? false)",
@@ -28,5 +28,6 @@ enum InteractionDiagnostics {
         .joined(separator: " ")
 
         logger.notice("\(line, privacy: .public)")
+        DiagnosticLogStore.shared.append(line)
     }
 }

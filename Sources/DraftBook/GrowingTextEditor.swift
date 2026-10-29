@@ -280,7 +280,7 @@ final class DraftTextView: NSTextView {
 
     override func mouseDown(with event: NSEvent) {
         InteractionDiagnostics.record("editor.mouseDown.before", window: window)
-        NSApp.activate()
+        ApplicationRuntime.activateIfNeeded()
         window?.makeKeyAndOrderFront(nil)
         super.mouseDown(with: event)
         InteractionDiagnostics.record("editor.mouseDown.afterSuper", window: window)

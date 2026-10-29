@@ -643,10 +643,12 @@ public final class DraftStore: ObservableObject {
             return URL(fileURLWithPath: override, isDirectory: true)
         }
 
-        let base = FileManager.default.urls(
+        let fileManager = FileManager.default
+        let base = fileManager.urls(
             for: .applicationSupportDirectory,
             in: .userDomainMask
-        ).first!
+        ).first ?? fileManager.homeDirectoryForCurrentUser
+            .appendingPathComponent("Library/Application Support", isDirectory: true)
         return base.appendingPathComponent("com.yangyuxuan.DraftBook", isDirectory: true)
     }
 

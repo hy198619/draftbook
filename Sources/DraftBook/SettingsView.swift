@@ -205,7 +205,7 @@ private struct LabelSettingsView: View {
 
     private func saveNames() {
         focusedColor = nil
-        NSApp.keyWindow?.makeFirstResponder(nil)
+        ApplicationRuntime.endKeyWindowEditing()
         do {
             try store.setLabelNames(names)
             names = Dictionary(uniqueKeysWithValues: DraftColor.allCases.map { color in

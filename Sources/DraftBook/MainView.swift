@@ -25,7 +25,7 @@ struct MainView: View {
     @AppStorage("keepWindowOnTop") private var keepWindowOnTop = true
     @AppStorage(AppPreferenceKeys.autoHideWindowAtScreenEdge) private var autoHideWindowAtScreenEdge = true
     @State private var composerFocused = true
-    @State private var appIsActive = NSApp.isActive
+    @State private var appIsActive = false
     @State private var headerVisible = false
     @State private var headerRegionHovered = false
     @State private var titlebarRegionHovered = false
@@ -76,14 +76,18 @@ struct MainView: View {
             )
         )
         .onAppear {
+            appIsActive = ApplicationRuntime.isActive()
             composerFocused = true
+            InteractionDiagnostics.record("view.appeared", details: "appActive=\(appIsActive)")
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didResignActiveNotification)) { _ in
             appIsActive = false
+            InteractionDiagnostics.record("app.didResignActive")
             store.flush()
         }
         .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
             appIsActive = true
+            InteractionDiagnostics.record("app.didBecomeActive")
         }
         .onDisappear {
             headerRevealTask?.cancel()
@@ -147,11 +151,19 @@ struct MainView: View {
 
     private func handleHeaderRegionHover(_ hovering: Bool) {
         headerRegionHovered = hovering
+        InteractionDiagnostics.record(
+            "toolbar.contentHoverChanged",
+            details: "hovering=\(hovering) titlebarHover=\(titlebarRegionHovered) visible=\(headerVisible)"
+        )
         handleHeaderHover(headerRegionHovered || titlebarRegionHovered)
     }
 
     private func handleTitlebarRegionHover(_ hovering: Bool) {
         titlebarRegionHovered = hovering
+        InteractionDiagnostics.record(
+            "toolbar.titlebarHoverChanged",
+            details: "hovering=\(hovering) contentHover=\(headerRegionHovered) visible=\(headerVisible)"
+        )
         handleHeaderHover(headerRegionHovered || titlebarRegionHovered)
     }
 
@@ -160,19 +172,23 @@ struct MainView: View {
             headerHideTask?.cancel()
             guard !headerVisible else { return }
             headerRevealTask?.cancel()
+            InteractionDiagnostics.record("toolbar.revealScheduled")
             headerRevealTask = Task { @MainActor in
                 try? await Task.sleep(for: .seconds(1))
                 guard !Task.isCancelled else { return }
                 headerVisible = true
+                InteractionDiagnostics.record("toolbar.revealed")
             }
         } else {
             headerRevealTask?.cancel()
             guard !headerMustRemainVisible else { return }
             headerHideTask?.cancel()
+            InteractionDiagnostics.record("toolbar.hideScheduled")
             headerHideTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(350))
                 guard !Task.isCancelled, !headerMustRemainVisible else { return }
                 headerVisible = false
+                InteractionDiagnostics.record("toolbar.hidden")
             }
         }
     }

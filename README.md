@@ -14,7 +14,7 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 它是文字的临时中转站，不是另一个等着你认真整理和长期维护的知识库。
 
-> macOS 当前为 `0.9.7 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
+> macOS 当前为 `0.9.8 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
 
 ## 适合记录什么
 
@@ -37,13 +37,13 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 ## 下载
 
-请按系统下载对应版本。macOS 为 `0.9.7`，Windows 使用独立的 `0.9.6-preview.4` 内测发布通道：
+请按系统下载对应版本。macOS 为 `0.9.8`，Windows 使用独立的 `0.9.6-preview.4` 内测发布通道：
 
 **【重要提醒】Windows版目前问题较多，正在修复中，不建议下载！如果有意帮助测试改进，请联系作者：magicyangyuxuan**
 
 | 系统 | 下载 | 适用设备 | 状态与说明 |
 | --- | --- | --- | --- |
-| macOS | [`DraftBook-v0.9.7-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.7/DraftBook-v0.9.7-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
+| macOS | [`DraftBook-v0.9.8-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.8/DraftBook-v0.9.8-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
 | Windows x64 | [`DraftBook-v0.9.6-preview.4-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.4/DraftBook-v0.9.6-preview.4-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 | Windows ARM64 | [`DraftBook-v0.9.6-preview.4-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.4/DraftBook-v0.9.6-preview.4-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 
@@ -68,6 +68,7 @@ Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已
 - 回收站支持恢复和永久删除；
 - TXT、Markdown、完整 JSON 导出；
 - 每日自动备份，支持从完整备份恢复；
+- macOS 版可从“帮助 → 导出诊断日志…”生成不含草稿正文的运行报告，便于定位启动、窗口和焦点异常；
 - macOS 版可手动检查 GitHub 新版本；Windows 安装版可自动检查、下载、校验并在重启后完成更新；
 - 可调默认清理周期、备份策略和窗口置顶；
 - 草稿完全保存在本机，不需要账号；Windows 安装版默认每 12 小时最多向 GitHub 检查一次公开版本信息，可在设置中关闭，不会上传草稿。
@@ -104,7 +105,7 @@ Windows: %LOCALAPPDATA%\DraftBook\
 
 ## 反馈
 
-请通过 [GitHub Issues](https://github.com/hy198619/draftbook/issues) 报告问题或提出建议。建议先阅读[反馈指南](docs/FEEDBACK.md)，不要在 Issue 或截图中泄露真实草稿和账号信息。
+请通过 [GitHub Issues](https://github.com/hy198619/draftbook/issues) 报告问题或提出建议。建议先阅读[反馈指南](docs/FEEDBACK.md)。macOS 用户可同时附上“帮助 → 导出诊断日志…”生成的报告；提交前仍请自行检查，不要在 Issue、截图或附件中泄露真实草稿和账号信息。
 
 ## 从源码构建 macOS 版
 

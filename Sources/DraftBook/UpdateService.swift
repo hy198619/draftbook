@@ -92,10 +92,15 @@ enum UpdateService {
         "https://api.github.com/repos/hy198619/draftbook/releases?per_page=100"
     )!
 
+    private static var userAgent: String {
+        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown"
+        return "DraftBook/\(version)"
+    }
+
     static func latestRelease() async throws -> UpdateRelease {
         var request = URLRequest(url: releasesURL)
         request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-        request.setValue("DraftBook/0.9.7", forHTTPHeaderField: "User-Agent")
+        request.setValue(userAgent, forHTTPHeaderField: "User-Agent")
         request.timeoutInterval = 20
 
         let (data, response) = try await URLSession.shared.data(for: request)

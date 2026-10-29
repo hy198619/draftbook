@@ -56,7 +56,7 @@ Apple 对这一流程的官方说明：<https://support.apple.com/102445>
 在终端执行：
 
 ```bash
-shasum -a 256 ~/Downloads/DraftBook-v0.9.7-macOS-unsigned.dmg
+shasum -a 256 ~/Downloads/DraftBook-v0.9.8-macOS-unsigned.dmg
 ```
 
 输出值应与同一 Release 中 `SHA256SUMS.txt` 的内容完全一致。
@@ -68,3 +68,9 @@ shasum -a 256 ~/Downloads/DraftBook-v0.9.7-macOS-unsigned.dmg
 ```
 
 卸载 App 不会自动删除这里的草稿和备份。
+
+## 遇到异常时导出诊断日志
+
+如果遇到窗口无法收起、呼出后无法输入或其他偶发问题，可选择“帮助 → 导出诊断日志…”，把生成的文本文件连同复现步骤一起提交。
+
+报告包含草稿本版本、macOS 版本、芯片架构以及最近的启动、窗口、焦点和工具栏状态变化；不会记录草稿正文、搜索词、标签名称或剪贴板内容。发送前仍建议自行打开检查一次。

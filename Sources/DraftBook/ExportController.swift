@@ -75,6 +75,30 @@ enum ExportController {
         }
     }
 
+    static func exportDiagnostics() {
+        InteractionDiagnostics.record("diagnostics.exportRequested")
+
+        let panel = NSSavePanel()
+        panel.nameFieldStringValue = "草稿本诊断日志.txt"
+        panel.allowedContentTypes = [.plainText]
+        panel.canCreateDirectories = true
+
+        panel.begin { response in
+            guard response == .OK, let url = panel.url else { return }
+            do {
+                let report = DiagnosticLogStore.shared.makeReport()
+                try Data(report.utf8).write(to: url, options: [.atomic])
+                InteractionDiagnostics.record("diagnostics.exportSucceeded")
+            } catch {
+                InteractionDiagnostics.record(
+                    "diagnostics.exportFailed",
+                    details: "errorType=\(String(describing: type(of: error)))"
+                )
+                showExportError(error)
+            }
+        }
+    }
+
     static func importFullBackup(into store: DraftStore) {
         let panel = NSOpenPanel()
         panel.allowedContentTypes = [.json]

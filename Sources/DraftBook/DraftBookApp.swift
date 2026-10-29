@@ -6,6 +6,8 @@ struct DraftBookApp: App {
     @StateObject private var store: DraftStore
 
     init() {
+        InteractionDiagnostics.record("app.initialize")
+
         let defaults = UserDefaults.standard
         defaults.register(defaults: [
             AppPreferenceKeys.keepWindowOnTop: true,
@@ -110,6 +112,10 @@ struct DraftBookApp: App {
 
                 Button("打开数据文件夹") {
                     ExportController.openDataFolder(for: store)
+                }
+
+                Button("导出诊断日志…") {
+                    ExportController.exportDiagnostics()
                 }
             }
         }

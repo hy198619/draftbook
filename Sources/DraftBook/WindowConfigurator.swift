@@ -251,9 +251,7 @@ struct WindowConfigurator: NSViewRepresentable {
                 window: window,
                 details: "dockState=\(dockStateDescription)"
             )
-            if !NSApp.isActive {
-                NSApp.activate()
-            }
+            ApplicationRuntime.activateIfNeeded()
             if !window.isKeyWindow {
                 window.makeKeyAndOrderFront(nil)
             }

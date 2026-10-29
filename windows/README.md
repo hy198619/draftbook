@@ -2,7 +2,7 @@
 
 该目录用于 Windows 版的独立实现与验证材料。
 
-当前状态（2026-10-27）：
+当前状态（2026-10-29）：
 
 - 已完成 macOS `a728753` / `v0.9.6` 的行为与平台边界核查；
 - 已完成独立的 .NET 10 核心模型、schema v5 兼容、原子保存、自动备份和 50 项核心自动测试；
@@ -12,8 +12,9 @@
 - `0.9.6-preview.3` 已修复换行呈现、网址嵌套链接崩溃、分类名称入口和中文弹出菜单字体问题，并增加单条预览降级保护；
 - `0.9.6-preview.3` 已在 macOS 使用 .NET 10 WindowsDesktop targeting pack 完成 Release 交叉编译，并成功生成 x64 与 ARM64 自包含程序；
 - `0.9.6-preview.4` 将草稿列表改为按像素滚动，并让 Markdown 预览把滚轮事件交给外层列表；
-- macOS 当前为 `0.9.7`，Windows 预览构建继续使用独立的 `0.9.6-preview.N` 后缀；本次不修改 macOS；
-- **`0.9.6-preview.4` 的滚动修复尚未在 Windows 真机验证**，实际鼠标与触控板手感仍必须由 Windows 10/11 内测确认；
+- `0.9.6-preview.5` 让新草稿输入区与已划定草稿编辑器随正文自动增高，并扩大草稿分隔线上下留白；
+- macOS 当前为 `0.9.8`，Windows 预览构建继续使用独立的 `0.9.6-preview.N` 后缀；本次不修改 macOS；
+- **`0.9.6-preview.5` 的自动增高、长文光标跟随和新版间距尚未在 Windows 真机验证**，仍必须由 Windows 10/11 内测确认；
 - 没有读取或复制任何真实草稿。
 
 技术提案见 [`../docs/WINDOWS_TECHNICAL_PLAN.md`](../docs/WINDOWS_TECHNICAL_PLAN.md)。

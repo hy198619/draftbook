@@ -88,6 +88,24 @@ public sealed class MarkdownPreviewTests
     }
 
     [Fact]
+    public void DraftCardUsesExpandedVerticalSpacing()
+    {
+        RunOnSta(() =>
+        {
+            var now = DateTimeOffset.Now;
+            var draft = new Draft { Content = "合成测试草稿", CreatedAt = now, UpdatedAt = now };
+            var state = new DraftBookState(new DraftBookSnapshot
+            {
+                SchemaVersion = DraftBookSnapshot.CurrentSchemaVersion,
+                Drafts = [draft],
+            });
+            var card = new DraftCard(state, draft, "active", () => { }, () => { });
+
+            Assert.Equal(new Thickness(0, 12, 0, 18), card.Padding);
+        });
+    }
+
+    [Fact]
     public void MouseWheelOverPreviewIsForwardedOnceToOuterScrollViewer()
     {
         RunOnSta(() =>

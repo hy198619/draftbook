@@ -1,6 +1,6 @@
 # DraftBook（草稿本）开发交接
 
-> 最后核对：2026-10-27（Asia/Shanghai）
+> 最后核对：2026-10-29（Asia/Shanghai）
 >
 > 仓库：`https://github.com/hy198619/draftbook`
 >
@@ -35,6 +35,7 @@ DraftBook 是给内容创作者、知识工作者和一人公司主理人的轻�
 - 该提交标题：`Handle logical parent in scroll forwarding`。
 - macOS 公测版：`v0.9.8`，修复旧系统启动崩溃并加入诊断日志导出。
 - Windows 内测版：`0.9.6-preview.4`。
+- `main` 已含 preview.4 之后尚未发布的 Windows 布局改动：输入区和草稿编辑器自动增高、输入区与草稿列表统一外层滚动、草稿分隔线上下间距增大。
 - Windows 滚动修复与 macOS 0.9.8 发布通道相互独立。
 
 新对话开始后第一步必须重新运行：
@@ -133,6 +134,13 @@ Windows preview.4 包含 preview.3 的修复，并新增滚动修复：
 - 增加单实例和重复启动唤醒已有窗口，避免双击快捷方式后看起来没有打开。
 - 提供 x64/ARM64 自包含安装程序、桌面和开始菜单快捷方式、自动检查更新、下载、校验和重启安装。
 
+preview.4 发布后、下一内测版尚未发布的改动：
+
+- 新草稿输入区移除 `MaxHeight=240` 和内部滚动，改为按内容自动增高；输入区与草稿列表放在同一个外层 `ScrollViewer` 中，长文超过窗口时滚动整页，行为与 macOS 的整体结构一致。
+- 已划定草稿进入原文编辑时移除 `MaxHeight=360`，同样按内容增高并使用外层滚动。
+- `DraftCard` 上、下留白从 7/10 DIP 调整为 12/18 DIP，增加约 70%–80%。
+- 已增加两项 Windows 布局回归测试；因本机没有 Windows/.NET WindowsDesktop 运行环境，目前仅完成 XML 和静态结构检查，尚未在 Windows CI 或真机验证。
+
 详细功能状态继续参考：
 
 - `windows/spec/IMPLEMENTATION_STATUS.md`
@@ -211,6 +219,7 @@ DraftBook 草稿本_ExecutionStub.exe
 - 断电、强制杀进程、磁盘满和无权限目录。
 - 长时间运行的空闲内存、冷启动时间和稳定性。
 - preview.4 的鼠标滚轮与触控板手感仍需用户真机确认；preview.3 的菜单字体、Markdown、链接崩溃和分类入口也继续接受回归。
+- preview.4 之后的输入区自动增高、长文光标跟随、草稿原文编辑增高与新卡片间距，尚未在 Windows CI 和 Windows 真机验证。
 
 任何后续交付都必须明确区分：
 

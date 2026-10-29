@@ -24,7 +24,6 @@
         <Grid.RowDefinitions>
             <RowDefinition Height="44" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -167,47 +166,49 @@
             </Grid>
         </Border>
 
-        <Border x:Name="ComposerHost"
-                Grid.Row="2"
-                Margin="16,0"
-                BorderBrush="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
-                BorderThickness="0,0,0,1">
-            <Grid>
-                <TextBlock x:Name="ComposerPlaceholder"
-                           Margin="4,16,4,0"
-                           VerticalAlignment="Top"
-                           FontSize="15"
-                           Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
-                           Text="直接写下来……"
-                           IsHitTestVisible="False" />
-                <local:ImeAwareTextBox x:Name="ComposerBox"
-                                       AcceptsReturn="True"
-                                       TextWrapping="Wrap"
-                                       MinHeight="92"
-                                       MaxHeight="240"
-                                       Padding="4,13,4,12"
-                                       FontSize="15"
-                                       VerticalScrollBarVisibility="Auto"
-                                       BorderThickness="0"
-                                       Background="Transparent"
-                                       CommitRequested="Composer_CommitRequested"
-                                       TextChanged="Composer_TextChanged"
-                                       AutomationProperties.Name="新草稿输入框" />
-            </Grid>
-        </Border>
-
-        <ScrollViewer Grid.Row="3"
+        <ScrollViewer Grid.Row="2"
                       Margin="16,0"
                       VerticalScrollBarVisibility="Auto"
                       HorizontalScrollBarVisibility="Disabled"
                       CanContentScroll="False">
-            <!-- Draft cards have variable heights. Physical (pixel) scrolling keeps
-                 wheel movement consistent instead of jumping by whole cards. -->
-            <StackPanel x:Name="DraftPanel" />
+            <!-- The composer and cards share one outer scroller. This lets the composer
+                 grow with its text without trapping the user in a small inner viewport. -->
+            <StackPanel>
+                <Border x:Name="ComposerHost"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"
+                        BorderThickness="0,0,0,1">
+                    <Grid>
+                        <TextBlock x:Name="ComposerPlaceholder"
+                                   Margin="4,16,4,0"
+                                   VerticalAlignment="Top"
+                                   FontSize="15"
+                                   Foreground="{DynamicResource {x:Static SystemColors.GrayTextBrushKey}}"
+                                   Text="直接写下来……"
+                                   IsHitTestVisible="False" />
+                        <local:ImeAwareTextBox x:Name="ComposerBox"
+                                               AcceptsReturn="True"
+                                               TextWrapping="Wrap"
+                                               MinHeight="92"
+                                               Padding="4,13,4,12"
+                                               FontSize="15"
+                                               VerticalScrollBarVisibility="Disabled"
+                                               HorizontalScrollBarVisibility="Disabled"
+                                               BorderThickness="0"
+                                               Background="Transparent"
+                                               CommitRequested="Composer_CommitRequested"
+                                               TextChanged="Composer_TextChanged"
+                                               AutomationProperties.Name="新草稿输入框" />
+                    </Grid>
+                </Border>
+
+                <!-- Draft cards have variable heights. Physical (pixel) scrolling keeps
+                     wheel movement consistent instead of jumping by whole cards. -->
+                <StackPanel x:Name="DraftPanel" />
+            </StackPanel>
         </ScrollViewer>
 
         <Border x:Name="StatusToast"
-                Grid.RowSpan="4"
+                Grid.RowSpan="3"
                 HorizontalAlignment="Center"
                 VerticalAlignment="Bottom"
                 Margin="16"

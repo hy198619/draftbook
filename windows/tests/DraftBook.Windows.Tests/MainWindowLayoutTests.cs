@@ -8,17 +8,42 @@ public sealed class MainWindowLayoutTests
     [Fact]
     public void DraftListUsesPhysicalPixelScrolling()
     {
-        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "MainWindow.xaml");
-        var document = XDocument.Load(path);
-        XNamespace presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
-        XNamespace xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+        var document = LoadMainWindow();
 
         var panel = Assert.Single(
-            document.Descendants(presentation + "StackPanel"),
-            element => (string?)element.Attribute(xaml + "Name") == "DraftPanel");
-        var viewer = Assert.IsType<XElement>(panel.Parent);
+            document.Descendants(Presentation + "StackPanel"),
+            element => (string?)element.Attribute(Xaml + "Name") == "DraftPanel");
+        var viewer = Assert.Single(panel.Ancestors(Presentation + "ScrollViewer"));
 
-        Assert.Equal(presentation + "ScrollViewer", viewer.Name);
         Assert.Equal("False", (string?)viewer.Attribute("CanContentScroll"));
+    }
+
+    [Fact]
+    public void ComposerGrowsInsideTheSharedOuterScroller()
+    {
+        var document = LoadMainWindow();
+        var composer = Assert.Single(
+            document.Descendants(Local + "ImeAwareTextBox"),
+            element => (string?)element.Attribute(Xaml + "Name") == "ComposerBox");
+        var draftPanel = Assert.Single(
+            document.Descendants(Presentation + "StackPanel"),
+            element => (string?)element.Attribute(Xaml + "Name") == "DraftPanel");
+
+        Assert.Null(composer.Attribute("Height"));
+        Assert.Null(composer.Attribute("MaxHeight"));
+        Assert.Equal("Disabled", (string?)composer.Attribute("VerticalScrollBarVisibility"));
+        Assert.Same(
+            Assert.Single(composer.Ancestors(Presentation + "ScrollViewer")),
+            Assert.Single(draftPanel.Ancestors(Presentation + "ScrollViewer")));
+    }
+
+    private static readonly XNamespace Presentation = "http://schemas.microsoft.com/winfx/2006/xaml/presentation";
+    private static readonly XNamespace Xaml = "http://schemas.microsoft.com/winfx/2006/xaml";
+    private static readonly XNamespace Local = "clr-namespace:DraftBook.Windows";
+
+    private static XDocument LoadMainWindow()
+    {
+        var path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "MainWindow.xaml");
+        return XDocument.Load(path);
     }
 }

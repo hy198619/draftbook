@@ -27,7 +27,9 @@ public sealed class DraftCard : Border
         BorderBrush = SystemColors.ControlLightBrush;
         BorderThickness = new Thickness(0, 0, 0, 1);
         Margin = new Thickness(0);
-        Padding = new Thickness(0, 7, 0, 10);
+        // Keep the separator from crowding either adjacent draft. Compared with
+        // the previous 7/10 DIP spacing, 12/18 adds roughly 70-80% more air.
+        Padding = new Thickness(0, 12, 0, 18);
 
         var stack = new StackPanel();
         stack.Children.Add(BuildHeader(draft, section, openLabelSettings));
@@ -291,8 +293,8 @@ public sealed class DraftCard : Border
             AcceptsReturn = true,
             TextWrapping = TextWrapping.Wrap,
             MinHeight = 64,
-            MaxHeight = 360,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
             BorderThickness = new Thickness(0),
             Margin = new Thickness(4, 5, 4, 2),
         };

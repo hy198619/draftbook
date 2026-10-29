@@ -31,12 +31,11 @@ DraftBook 是给内容创作者、知识工作者和一人公司主理人的轻�
 截至本文更新时：
 
 - 分支：`main`
-- Windows `0.9.6-preview.4` tag/commit：`39cb40c0644ed4cd9457eb070e945d055d9638ab`。
-- 该提交标题：`Handle logical parent in scroll forwarding`。
+- Windows `0.9.6-preview.5` tag/commit：`f9ac8060827b8ea7fd6e635d41c437ac340e7068`。
+- 该提交标题：`Release Windows 0.9.6 preview 5`。
 - macOS 公测版：`v0.9.8`，修复旧系统启动崩溃并加入诊断日志导出。
-- Windows 内测版：`0.9.6-preview.4`。
-- `main` 已含 preview.4 之后尚未发布的 Windows 布局改动：输入区和草稿编辑器自动增高、输入区与草稿列表统一外层滚动、草稿分隔线上下间距增大。
-- Windows 滚动修复与 macOS 0.9.8 发布通道相互独立。
+- Windows 内测版：`0.9.6-preview.5`。
+- Windows preview.5 与 macOS 0.9.8 发布通道相互独立。
 
 新对话开始后第一步必须重新运行：
 
@@ -48,33 +47,35 @@ git log -8 --oneline --decorate
 
 如果状态与本文不一致，以真实仓库为准，并说明差异。
 
-## 三、已发布的 Windows preview.4
+## 三、已发布的 Windows preview.5
 
 GitHub Release：
 
-`https://github.com/hy198619/draftbook/releases/tag/windows-v0.9.6-preview.4`
+`https://github.com/hy198619/draftbook/releases/tag/windows-v0.9.6-preview.5`
 
 已确认的发布状态：
 
-- 名称：`DraftBook Windows 0.9.6-preview.4`
-- tag：`windows-v0.9.6-preview.4`
+- 名称：`DraftBook Windows 0.9.6-preview.5`
+- tag：`windows-v0.9.6-preview.5`
 - `prerelease = true`
 - `draft = false`
-- 发布时间：2026-10-27 15:11（北京时间，GitHub 记录为 07:11 UTC）
-- x64 安装包：`DraftBook-v0.9.6-preview.4-Windows-x64-Setup.exe`
-  - 大小：79,065,418 bytes
-  - SHA-256：`6e1cc4ef085319d5dae76290bf4fa37fa16ea490fafb9328073b2cfe99591492`
-- ARM64 安装包：`DraftBook-v0.9.6-preview.4-Windows-arm64-Setup.exe`
-  - 大小：72,510,679 bytes
-  - SHA-256：`893feec1f5d83ca92f080315b768c28d5d399fca4ed4b2fa982426ce1e9f222c`
+- 发布时间：2026-10-29 15:00（北京时间，GitHub 记录为 07:00 UTC）
+- x64 安装包：`DraftBook-v0.9.6-preview.5-Windows-x64-Setup.exe`
+  - 大小：79,065,766 bytes
+  - SHA-256：`deef160353fa7f1bfd515dd40ea00f1f87363294b58b32f88ba8e0301753d70a`
+- ARM64 安装包：`DraftBook-v0.9.6-preview.5-Windows-arm64-Setup.exe`
+  - 大小：72,511,040 bytes
+  - SHA-256：`bc14f086ce94f29c4fb4ec35eba49a107c8e5ddf234b5d88ea0a8978d8f8c7ae`
+- x64 完整更新包：71,442,086 bytes；SHA-256：`535bf7fd164a0546a04e68ba75dbd07866aff6ae689d02bda7ec49fd91cb114e`。
+- ARM64 完整更新包：66,493,504 bytes；SHA-256：`22aff4e97aea77b28dea6df32a6fef87ef0b43bfae044e5e57e9c457232617ca`。
 - Release 同时包含两个架构的完整 `.nupkg`、`.sha256` 和独立更新 feed。
 - 面向内部流程的两个 Setup 别名已从 Release 删除，只保留用户能理解的安装包名称。
 
-与 preview.4 tag 对应的 GitHub Actions 已全部通过：
+与 preview.5 tag 对应的 GitHub Actions 已全部通过：
 
-- `CI`：run `40465345830`
-- `Windows CI`：run `40465345881`
-- `Windows Release`：run `40465357601`
+- `CI`：run `40832389251`
+- `Windows CI`：run `40832389315`
+- `Windows Release`：run `40832408209`
 
 发布属于对外操作。后续不能因为代码完成就自动上传或改 Release；必须再次取得用户明确授权。
 
@@ -112,13 +113,18 @@ macOS 数据位于当前用户的 Application Support 中：
 
 其中 `~` 表示当前用户主目录，`com.yangyuxuan.DraftBook` 是应用标识，不是开发者电脑的私人目录名。
 
-## 五、preview.4 已完成的主要修复
+## 五、preview.5 已完成的主要修复
 
-Windows preview.4 包含 preview.3 的修复，并新增滚动修复：
+Windows preview.5 延续 preview.4 的滚动修复，并新增自动增高与间距调整：
+
+- 新草稿输入区移除 `MaxHeight=240` 和内部滚动，改为按内容自动增高；输入区与草稿列表放在同一个外层 `ScrollViewer` 中，长文超过窗口时滚动整页，行为与 macOS 的整体结构一致。
+- 已划定草稿进入原文编辑时移除 `MaxHeight=360`，同样按内容增高并使用外层滚动。
+- `DraftCard` 上、下留白从 7/10 DIP 调整为 12/18 DIP，增加约 70%–80%。
+- Windows Release 中 50 项核心测试和 12 项 Windows UI 测试全部通过；本机静态检查与 macOS 60 项测试也通过。
 
 - 草稿主列表改为按像素滚动，避免高度不同的草稿按整张卡片跳动。
 - Markdown 预览把滚轮事件交给外层主列表，鼠标位于正文上方时不再截断滚动。
-- 增加主列表滚动模式和 Markdown 滚轮转发的回归测试；Windows UI 测试共 10 项通过。
+- 增加主列表滚动模式和 Markdown 滚轮转发的回归测试。
 - 默认窗口改为 420 × 680 DIP，并按当前显示器工作区、DPI 和任务栏位置限制初始位置；不再默认顶天顶地。
 - 记忆并校验窗口位置、大小和最大化状态，提供“恢复默认窗口大小和位置”。
 - 首次启动默认不始终置顶；图钉旁显示一次性说明卡片。
@@ -133,13 +139,6 @@ Windows preview.4 包含 preview.3 的修复，并新增滚动修复：
 - 加强自动保存快照一致性、串行写入、退出 flush、备份恢复、清理台刷新、IME 快捷键和导出错误处理。
 - 增加单实例和重复启动唤醒已有窗口，避免双击快捷方式后看起来没有打开。
 - 提供 x64/ARM64 自包含安装程序、桌面和开始菜单快捷方式、自动检查更新、下载、校验和重启安装。
-
-preview.4 发布后、下一内测版尚未发布的改动：
-
-- 新草稿输入区移除 `MaxHeight=240` 和内部滚动，改为按内容自动增高；输入区与草稿列表放在同一个外层 `ScrollViewer` 中，长文超过窗口时滚动整页，行为与 macOS 的整体结构一致。
-- 已划定草稿进入原文编辑时移除 `MaxHeight=360`，同样按内容增高并使用外层滚动。
-- `DraftCard` 上、下留白从 7/10 DIP 调整为 12/18 DIP，增加约 70%–80%。
-- 已增加两项 Windows 布局回归测试；因本机没有 Windows/.NET WindowsDesktop 运行环境，目前仅完成 XML 和静态结构检查，尚未在 Windows CI 或真机验证。
 
 详细功能状态继续参考：
 
@@ -177,7 +176,7 @@ DraftBook 草稿本_ExecutionStub.exe
 1. 只把 Velopack `packTitle` 改为纯 ASCII 的 `DraftBook`。
 2. 不修改 `packId`、`mainExe` 和应用内“草稿本”中文品牌。
 3. 接受快捷方式、开始菜单和“已安装的应用”可能显示为 `DraftBook`。
-4. 在不发布的 CI 构建中重新启用差分，真实验证从 preview.4 到新版本能否生成并应用 delta。
+4. 在不发布的 CI 构建中重新启用差分，真实验证从 preview.5 到新版本能否生成并应用 delta。
 5. 验证成功后再决定是否正式恢复差分；不能只凭推断宣称已解决。
 
 建议使用品牌写法 `DraftBook`，不要使用全小写 `draftbook`。
@@ -202,11 +201,11 @@ DraftBook 草稿本_ExecutionStub.exe
 - Windows 核心测试 50/50 通过。
 - 核心行覆盖率 91.56%，分支覆盖率 74.28%。
 - Windows UI 逻辑测试已纳入 Windows CI。
-- preview.4 Windows Release workflow 成功，核心测试和 10 项 Windows UI 测试全部通过。
+- preview.5 Windows Release workflow 成功，核心测试 50/50、Windows UI 测试 12/12 全部通过。
 - x64 与 ARM64 自包含产物生成成功，文件头架构正确。
 - 两个 Setup.exe、完整更新包和更新 feed 实际生成。
 - Velopack 更新 smoke locator 能读取本地 feed、发现旧版到新版并校验对应架构的完整包。
-- preview.4 tag 对应的 CI、Windows CI 和 Windows Release workflow 均成功。
+- preview.5 tag 对应的 CI、Windows CI 和 Windows Release workflow 均成功。
 - 应用和测试项目未发现 NuGet 已知漏洞。
 
 尚未由开发者在 Windows 环境完整验证：
@@ -219,7 +218,7 @@ DraftBook 草稿本_ExecutionStub.exe
 - 断电、强制杀进程、磁盘满和无权限目录。
 - 长时间运行的空闲内存、冷启动时间和稳定性。
 - preview.4 的鼠标滚轮与触控板手感仍需用户真机确认；preview.3 的菜单字体、Markdown、链接崩溃和分类入口也继续接受回归。
-- preview.4 之后的输入区自动增高、长文光标跟随、草稿原文编辑增高与新卡片间距，尚未在 Windows CI 和 Windows 真机验证。
+- preview.5 的输入区自动增高、长文光标跟随、草稿原文编辑增高与新卡片间距已通过自动化布局测试，但尚未在 Windows 真机验证。
 
 任何后续交付都必须明确区分：
 
@@ -336,7 +335,7 @@ Windows 可在 WPF 窗口上结合 Win32 的窗口位置、显示器工作区和
 4. 我本机没有 Windows 开发环境。必须明确区分“代码已实现/CI 已通过”和“已在 Windows 真机验证”，不能把交叉编译当成真机验证。
 5. 首要质量标准是草稿内容保存、空格换行、Markdown、链接、中文输入法和自动保存可靠；视觉优化不能破坏这些能力。
 
-当前 Windows 版本是 0.9.6-preview.4，x64/ARM64 安装包和完整自动更新已发布。本版把主列表改为像素滚动，并修复 Markdown 正文区域截断滚轮的问题；代码和 CI 已通过，但滚动手感尚待 Windows 真机回归。差分包因中文 ExecutionStub 文件名导致 zstd 失败而暂时用 --delta none 关闭。可研究只把 Velopack packTitle 改为 ASCII 的 DraftBook，并在不发布的 CI 中验证从 preview.4 生成和应用差分包；不要修改 packId。
+当前 Windows 版本是 0.9.6-preview.5，x64/ARM64 安装包和完整自动更新已发布。本版让输入区与已划定草稿编辑器随正文自动增高，并扩大草稿分隔线上下留白；代码和 CI 已通过，但长文光标跟随、间距观感和滚动手感仍待 Windows 真机回归。差分包因中文 ExecutionStub 文件名导致 zstd 失败而暂时用 --delta none 关闭。可研究只把 Velopack packTitle 改为 ASCII 的 DraftBook，并在不发布的 CI 中验证从 preview.5 生成和应用差分包；不要修改 packId。
 
 下一阶段的主要方向是 Windows WPF 视觉重构：建立 DraftBook 自己的安静、克制、内容优先的设计系统，不做假 Mac，也不为美观贸然迁移 WinUI 3。优先把 DraftCard 从 C# 动态控件逐步改为 XAML 组件，统一颜色、字体层级、间距、按钮、菜单、hover/focus、明暗模式和视觉回归。
 

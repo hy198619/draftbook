@@ -4,7 +4,7 @@
 >
 > 检查日期：2026-10-29
 >
-> Windows 源码版本：`0.9.6-preview.5`；macOS 当前公开版本为 `0.9.8`，本次未修改
+> Windows 已发布版本：`0.9.6-preview.5`；macOS 当前公开版本为 `0.9.8`，本次未修改
 
 ## 已完成代码
 
@@ -32,11 +32,11 @@
 - Velopack `win-x64-beta` / `win-arm64-beta` 独立更新通道，支持 GitHub Release 检查、下载、校验、重启安装和失败时保留旧版；
 - 默认最多每 12 小时自动检查一次，可关闭自动检查，并保留手动检查入口；更新前强制 flush 草稿。
 
-## 已完成的非 Windows 验证
+## 已完成的自动化与非真机验证
 
 - 核心测试：50/50 通过；
-- Windows UI 逻辑测试程序集已交叉编译并纳入 CI；受 macOS 缺少 WindowsDesktop 运行时限制，本机未执行；
-- 已增加输入区共享外层滚动、取消固定高度及草稿间距的布局回归测试，须在下一次 Windows CI 中实际执行；
+- Windows UI 逻辑测试已纳入 CI；preview.5 的 12 项测试已在 GitHub Windows Release 和 Windows CI 环境执行通过；
+- 输入区共享外层滚动、取消固定高度及草稿间距的新增布局回归测试已通过；
 - 核心行覆盖率：91.56%，分支覆盖率 74.28%；
 - `0.9.6-preview.3` 整体 Release 交叉编译：0 警告、0 错误；
 - `0.9.6-preview.3` x64 与 ARM64 自包含发布成功；
@@ -45,7 +45,7 @@
 - 两个 Setup.exe 与完整更新包已实际生成，feed 分别引用正确的 x64 / ARM64 包及 SHA-256；
 - 使用 Velopack 测试 locator 实际读取两个本地 feed，从旧版号发现 `preview.2`、下载并验证对应架构的完整更新包；
 - 应用项目与测试项目未发现 NuGet 已知漏洞。
-- `0.9.6-preview.4` 的滚动测试已在该版 Windows 发布工作流中通过；`0.9.6-preview.5` 新增的布局测试必须在本次发布工作流中通过。
+- `0.9.6-preview.5` 的 50 项核心测试、12 项 Windows UI 测试、x64/ARM64 构建及两个更新包 smoke 校验均通过。
 
 ## 尚未在 Windows 验证
 
@@ -58,7 +58,7 @@
 - 断电、强制杀进程、磁盘满、无权限目录等真实故障注入；
 - Setup.exe 的安装、桌面/开始菜单快捷方式、卸载及用户数据保留；
 - 从已安装旧版到新版的真实检查、下载、校验、重启替换、回滚和断网流程；
-- Windows UI 逻辑测试仍需在 GitHub Windows CI 和真机上执行。
+- Windows UI 自动化测试已在 GitHub Windows CI 执行；真实交互与视觉效果仍需 Windows 真机测试。
 
 ## 与 macOS 0.9.6 尚有差异
 

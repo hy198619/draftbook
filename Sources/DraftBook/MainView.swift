@@ -535,7 +535,13 @@ struct MainView: View {
                 font: .systemFont(ofSize: 15),
                 minHeight: 84,
                 lineSpacing: 3,
-                onCommit: sealComposer
+                onCommit: sealComposer,
+                onPasteImage: { pasteboard in
+                    ImagePasteService.save(pasteboard: pasteboard, store: store)
+                },
+                onPasteFile: { url in
+                    ImagePasteService.save(fileURL: url, store: store)
+                }
             )
             .frame(minHeight: 84)
             .padding(.vertical, 7)

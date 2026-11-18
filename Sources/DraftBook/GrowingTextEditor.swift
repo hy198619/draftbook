@@ -1,5 +1,7 @@
 import AppKit
+import DraftBookCore
 import SwiftUI
+import UniformTypeIdentifiers
 
 struct GrowingTextEditor: NSViewRepresentable {
     @Binding var text: String
@@ -9,6 +11,10 @@ struct GrowingTextEditor: NSViewRepresentable {
     var minHeight: CGFloat
     var lineSpacing: CGFloat = 3
     var onCommit: (() -> Void)?
+    /// Saves the clipboard image and returns the Markdown relative path.
+    var onPasteImage: ((NSPasteboard) -> String?)?
+    /// Copies a chosen file into the attachment library, same return contract.
+    var onPasteFile: ((URL) -> String?)?
 
     func makeCoordinator() -> Coordinator {
         Coordinator(parent: self)
@@ -24,6 +30,8 @@ struct GrowingTextEditor: NSViewRepresentable {
         let textView = DraftTextView()
         textView.delegate = context.coordinator
         textView.commitAction = onCommit
+        textView.imagePasteHandler = onPasteImage
+        textView.imageFileHandler = onPasteFile
         textView.focusChanged = { [weak coordinator = context.coordinator] _, _ in
             guard let coordinator else { return }
             DispatchQueue.main.async {
@@ -83,6 +91,8 @@ struct GrowingTextEditor: NSViewRepresentable {
         guard let textView = context.coordinator.textView else { return }
 
         textView.commitAction = onCommit
+        textView.imagePasteHandler = onPasteImage
+        textView.imageFileHandler = onPasteFile
 
         // Chinese input methods keep an uncommitted "marked text" range while
         // the user is choosing candidates. Assigning `string`, restoring a
@@ -325,6 +335,73 @@ final class DraftTextView: NSTextView {
 
     var commitAction: (() -> Void)?
     var focusChanged: ((Bool, String) -> Void)?
+    var imagePasteHandler: ((NSPasteboard) -> String?)?
+    var imageFileHandler: ((URL) -> String?)?
+
+    // MARK: - Images
+
+    /// Text always wins: copying from a web page, Excel or Word puts both an
+    /// image and a text representation on the pasteboard, and hijacking those
+    /// pastes would be far more annoying than helpful.
+    override func paste(_ sender: Any?) {
+        if !hasMarkedText(), pasteImageIfAvailable() { return }
+        super.paste(sender)
+    }
+
+    private func pasteImageIfAvailable() -> Bool {
+        let pasteboard = NSPasteboard.general
+        if pasteboard.string(forType: .string) != nil { return false }
+
+        if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
+           let imageURL = urls.first(where: { AttachmentStore.supportedExtensions.contains($0.pathExtension.lowercased()) }),
+           let path = imageFileHandler?(imageURL) {
+            return insertImageReference(path)
+        }
+
+        if pasteboard.data(forType: .png) != nil || pasteboard.data(forType: .tiff) != nil,
+           let path = imagePasteHandler?(pasteboard) {
+            return insertImageReference(path)
+        }
+
+        return false
+    }
+
+    @discardableResult
+    func insertImageReference(_ relativePath: String) -> Bool {
+        let plan = MarkdownImage.insertion(
+            forReference: MarkdownImage.reference(forRelativePath: relativePath),
+            in: string,
+            selection: selectedRange()
+        )
+        insertText(plan.text, replacementRange: plan.range)
+        let length = (string as NSString).length
+        setSelectedRange(NSRange(location: min(plan.caretLocation, length), length: 0))
+        scrollRangeToVisible(selectedRange())
+        return true
+    }
+
+    func presentImagePicker() {
+        let panel = NSOpenPanel()
+        panel.allowedContentTypes = [.png, .jpeg, .heic]
+        panel.allowsMultipleSelection = true
+        panel.canChooseDirectories = false
+        panel.message = "选择要插入草稿的图片"
+        panel.prompt = "插入"
+        guard panel.runModal() == .OK else { return }
+        for url in panel.urls {
+            guard let path = imageFileHandler?(url) else { continue }
+            insertImageReference(path)
+        }
+    }
+
+    /// Routes the Edit ▸ 插入图片… menu item to whichever editor has focus.
+    static func insertImageIntoFocusedEditor() {
+        guard let editor = NSApp.keyWindow?.firstResponder as? DraftTextView else {
+            NSSound.beep()
+            return
+        }
+        editor.presentImagePicker()
+    }
 
     override func becomeFirstResponder() -> Bool {
         let didBecomeFirstResponder = super.becomeFirstResponder()

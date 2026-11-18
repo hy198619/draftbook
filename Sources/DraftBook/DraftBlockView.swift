@@ -35,7 +35,13 @@ struct DraftBlockView: View {
                         font: .systemFont(ofSize: 14),
                         minHeight: 48,
                         lineSpacing: 3,
-                        onCommit: nil
+                        onCommit: nil,
+                        onPasteImage: { pasteboard in
+                            ImagePasteService.save(pasteboard: pasteboard, store: store)
+                        },
+                        onPasteFile: { url in
+                            ImagePasteService.save(fileURL: url, store: store)
+                        }
                     )
                     .frame(minHeight: 48)
                     .padding(.vertical, 5)
@@ -208,7 +214,10 @@ struct DraftBlockView: View {
     }
 
     private func markdownPreview(_ draft: Draft) -> some View {
-        MarkdownDraftPreview(source: draft.content) {
+        MarkdownDraftPreview(
+            source: draft.content,
+            attachmentDirectory: store.attachmentsDirectoryURL
+        ) {
             isEditingMarkdown = true
             editorFocused = true
         }

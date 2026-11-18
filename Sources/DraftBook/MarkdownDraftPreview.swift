@@ -6,6 +6,7 @@ import SwiftUI
 /// are displayed as newlines, a CommonMark-permitted presentation choice.
 struct MarkdownDraftPreview: View {
     let source: String
+    var attachmentDirectory: URL? = nil
     var onEdit: () -> Void = {}
 
     var body: some View {
@@ -45,6 +46,21 @@ struct MarkdownDraftPreview: View {
         return result.joined(separator: "\n")
     }
 
+    /// v1 only promotes images that sit alone in a paragraph; an image mixed
+    /// with text keeps the literal fallback so inline flow stays untouched.
+    static func imageOnlyParagraph(_ paragraph: Paragraph) -> Markdown.Image? {
+        let meaningful = paragraph.children.filter { child in
+            if let text = child as? Markdown.Text {
+                return !text.string.trimmingCharacters(in: .whitespaces).isEmpty
+            }
+            return true
+        }
+        guard meaningful.count == 1, let image = meaningful.first as? Markdown.Image else {
+            return nil
+        }
+        return image
+    }
+
     private static func lineIsExplicitBlockQuote(_ line: String) -> Bool {
         var index = line.startIndex
         var leadingSpaces = 0
@@ -70,6 +86,12 @@ struct MarkdownDraftPreview: View {
             let size = CGFloat(max(15, 26 - heading.level * 2))
             return AnyView(NativeMarkdownText(content: nativeInline(heading, size: size, bold: true), onEdit: onEdit))
         case let paragraph as Paragraph:
+            if let image = Self.imageOnlyParagraph(paragraph) {
+                return AnyView(DraftImageView(
+                    relativePath: image.source ?? "",
+                    directoryURL: attachmentDirectory
+                ))
+            }
             return AnyView(NativeMarkdownText(content: nativeInline(paragraph), onEdit: onEdit))
         case let code as CodeBlock:
             return AnyView(SwiftUI.Text(code.code.hasSuffix("\n") ? String(code.code.dropLast()) : code.code)

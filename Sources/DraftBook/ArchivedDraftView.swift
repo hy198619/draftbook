@@ -80,14 +80,23 @@ struct ArchivedDraftView: View {
                     font: .systemFont(ofSize: 14),
                     minHeight: 48,
                     lineSpacing: 3,
-                    onCommit: nil
+                    onCommit: nil,
+                    onPasteImage: { pasteboard in
+                        ImagePasteService.save(pasteboard: pasteboard, store: store)
+                    },
+                    onPasteFile: { url in
+                        ImagePasteService.save(fileURL: url, store: store)
+                    }
                 )
                 .frame(minHeight: 48)
                 .onChange(of: editorFocused) { _, focused in
                     if !focused { isEditingContent = false }
                 }
             } else {
-                MarkdownDraftPreview(source: draft.content) {
+                MarkdownDraftPreview(
+                    source: draft.content,
+                    attachmentDirectory: store.attachmentsDirectoryURL
+                ) {
                     isEditingContent = true
                     editorFocused = true
                 }

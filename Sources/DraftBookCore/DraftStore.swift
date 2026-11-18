@@ -64,6 +64,13 @@ public final class DraftStore: ObservableObject {
     private let fileURL: URL
     public let dataDirectoryURL: URL
     public let backupDirectoryURL: URL
+    public var attachmentsDirectoryURL: URL {
+        dataDirectoryURL.appendingPathComponent(AttachmentStore.directoryName, isDirectory: true)
+    }
+
+    public var attachments: AttachmentStore {
+        AttachmentStore(directoryURL: attachmentsDirectoryURL)
+    }
     @Published public private(set) var defaultReviewDays: Int
     @Published public private(set) var automaticBackupsEnabled: Bool
     @Published public private(set) var backupRetentionCount: Int
@@ -89,6 +96,7 @@ public final class DraftStore: ObservableObject {
             pruneBackups(keeping: self.backupRetentionCount)
         }
         load()
+        collectUnusedAttachments()
     }
 
     public func configure(
@@ -301,6 +309,49 @@ public final class DraftStore: ObservableObject {
             clearDeleteUndo()
         }
         saveNow()
+        collectUnusedAttachments()
+    }
+
+    // MARK: - Attachments
+
+    @discardableResult
+    public func saveAttachment(
+        data: Data,
+        preferredName: String?,
+        fileExtension: String
+    ) throws -> String {
+        try attachments.save(data: data, preferredName: preferredName, fileExtension: fileExtension)
+    }
+
+    @discardableResult
+    public func saveAttachment(contentsOf url: URL) throws -> String {
+        try attachments.save(contentsOf: url)
+    }
+
+    public func attachmentURL(forRelativePath path: String) -> URL {
+        attachments.fileURL(forRelativePath: path)
+    }
+
+    /// Deletes attachment files that no draft mentions any more. Only files
+    /// untouched for a week are removed, so restoring a backup or undoing a
+    /// delete still finds its images.
+    public func collectUnusedAttachments(
+        now: Date = Date(),
+        graceInterval: TimeInterval = 7 * 24 * 60 * 60
+    ) {
+        var referenced = MarkdownImage.referencedFileNames(in: composer)
+        for draft in drafts {
+            referenced.formUnion(MarkdownImage.referencedFileNames(in: draft.content))
+        }
+
+        let files = attachments.unreferencedFiles(
+            keeping: referenced,
+            now: now,
+            graceInterval: graceInterval
+        )
+        for file in files {
+            try? FileManager.default.removeItem(at: file)
+        }
     }
 
     public func postpone(id: UUID, days: Int, now: Date = Date()) {

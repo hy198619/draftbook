@@ -344,12 +344,13 @@ final class DraftTextView: NSTextView {
     /// image and a text representation on the pasteboard, and hijacking those
     /// pastes would be far more annoying than helpful.
     override func paste(_ sender: Any?) {
-        if !hasMarkedText(), pasteImageIfAvailable() { return }
+        if !hasMarkedText(), pasteImage(from: .general) { return }
         super.paste(sender)
     }
 
-    private func pasteImageIfAvailable() -> Bool {
-        let pasteboard = NSPasteboard.general
+    /// Exposed for tests: pasteboards can be created by name, so the whole
+    /// clipboard path is exercised without touching the user's clipboard.
+    func pasteImage(from pasteboard: NSPasteboard) -> Bool {
         if pasteboard.string(forType: .string) != nil { return false }
 
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],

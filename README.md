@@ -14,7 +14,7 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 它是文字的临时中转站，不是另一个等着你认真整理和长期维护的知识库。
 
-> macOS 当前为 `0.9.8 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
+> macOS 当前为 `0.9.9 Public Beta`。macOS 应用尚未经过 Developer ID 签名和公证；Windows 可执行文件尚未进行代码签名，首个小范围内测预览版在发布时尚未经过 Windows 真机验证。下载前请阅读对应说明。
 
 ## 适合记录什么
 
@@ -37,13 +37,13 @@ DraftBook（草稿本）是一款为一人公司主理人和内容创作者设�
 
 ## 下载
 
-请按系统下载对应版本。macOS 为 `0.9.8`，Windows 使用独立的 `0.9.6-preview.5` 内测发布通道：
+请按系统下载对应版本。macOS 为 `0.9.9`，Windows 使用独立的 `0.9.6-preview.5` 内测发布通道：
 
 **【重要提醒】作者暂时缺乏Windows版实机测试环境，如果你是win版用户，愿意帮助测试改进草稿本，请联系作者：magicyangyuxuan**
 
 | 系统 | 下载 | 适用设备 | 状态与说明 |
 | --- | --- | --- | --- |
-| macOS | [`DraftBook-v0.9.8-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.8/DraftBook-v0.9.8-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
+| macOS | [`DraftBook-v0.9.9-macOS-unsigned.dmg`](https://github.com/hy198619/draftbook/releases/download/v0.9.9/DraftBook-v0.9.9-macOS-unsigned.dmg) | macOS 14 或更高；Apple Silicon 与 Intel Mac | 公开测试版；[首次打开说明](docs/INSTALL.md) |
 | Windows x64 | [`DraftBook-v0.9.6-preview.5-Windows-x64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.5/DraftBook-v0.9.6-preview.5-Windows-x64-Setup.exe) | Windows 11 x64；Windows 10 22H2 x64 尽力兼容 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 | Windows ARM64 | [`DraftBook-v0.9.6-preview.5-Windows-arm64-Setup.exe`](https://github.com/hy198619/draftbook/releases/download/windows-v0.9.6-preview.5/DraftBook-v0.9.6-preview.5-Windows-arm64-Setup.exe) | Windows 11 ARM64；Snapdragon 等设备 | 正式安装程序；[安装与测试说明](windows/spec/BETA_TEST_GUIDE.md) |
 
@@ -60,7 +60,8 @@ Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已
 - `⌘ + Enter`（macOS）或 `Ctrl + Enter`（Windows）将当前内容划定为一条独立草稿，新输入区始终留在最上方；
 - 不相关的内容可以留在同一页，由分隔线区分，并能分别编辑和管理；
 - 自动保存，重启后恢复未划定和已划定内容；
-- 划定后自动呈现 Markdown，点击正文编辑源码，复制整条保留原始语法；
+- 划定后自动呈现 Markdown，点击正文编辑源码；复制整条时排版与图片一并带走，粘到纯文本编辑器仍是原始语法；
+- 草稿里可以放图片：截图后直接 `⌘V`，或用「编辑 → 插入图片…」（`⌘⇧I`）选取本地文件，图片会复制进本机附件库并以 Markdown 引用插入，独占一行；预览显示缩略图，原图被移动、重命名或删除都不影响草稿；
 - 按住 `⌘`（macOS）或 `Ctrl`（Windows）点击链接，调用默认应用打开网页或本地文件；普通点击仍用于编辑，也能识别未写成 Markdown 的网址和现有文件路径；
 - 五种彩色标签默认叫“分类1”至“分类5”，可自定义名称；黑色固定为“未分类”；标签按创建时间在默认、满 5 天、满 7 天、满 30 天四档降低饱和度，悬停可查看分类、创建、更新及清理时间；
 - 全文搜索，并可按标签筛选草稿和存档；存档后仍可编辑名称、正文和标签；
@@ -98,6 +99,7 @@ Release 同时提供 macOS 与 Windows 的 SHA-256 校验文件。Windows 版已
 
 ```text
 macOS:   ~/Library/Application Support/com.yangyuxuan.DraftBook/
+          └── Attachments/   草稿里用到的图片
 Windows: %LOCALAPPDATA%\DraftBook\
 ```
 

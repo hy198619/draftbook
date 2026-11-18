@@ -119,10 +119,8 @@ struct DraftBlockView: View {
 
     private func actionButtons(_ draft: Draft) -> some View {
         HStack(spacing: 8) {
-            iconButton("doc.on.doc", help: "复制整条") {
-                NSPasteboard.general.clearContents()
-                NSPasteboard.general.setString(draft.content, forType: .string)
-                store.markCopied(id: draft.id)
+            iconButton("doc.on.doc", help: "复制整条（文字加图片）") {
+                DraftRichText.copy(draft, store: store)
             }
 
             iconButton(draft.pinned ? "pin.slash" : "pin", help: draft.pinned ? "取消固定" : "固定") {
@@ -233,7 +231,7 @@ struct DraftBlockView: View {
             isEditingMarkdown = true
             editorFocused = true
         }
-        .help("单击编辑原文；⌘ 单击链接打开；复制整条保留 Markdown 语法")
+        .help("单击编辑原文；⌘ 单击链接打开；复制整条会带走排版和图片，粘到纯文本处仍保留 Markdown 语法")
     }
 
     private var contentBinding: Binding<String> {

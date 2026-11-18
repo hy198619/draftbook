@@ -97,6 +97,34 @@ final class ImagePasteTests: XCTestCase {
         XCTAssertEqual(textView.string, "原始文字")
     }
 
+    func testPasteOverrideUsesGeneralPasteboard() throws {
+        let general = NSPasteboard.general
+        general.clearContents()
+        general.setData(pngData, forType: .png)
+        defer { general.clearContents() }
+
+        let textView = makeTextView()
+        textView.paste(nil)
+
+        XCTAssertTrue(
+            textView.string.hasPrefix("![图片](Attachments/"),
+            "菜单/快捷键走的是 paste(_:)，这里必须命中图片分支，实际内容：\(textView.string)"
+        )
+    }
+
+    func testCopiedFileWinsOverItsPathText() throws {
+        let source = directory.appendingPathComponent("logo.png")
+        try pngData.write(to: source)
+
+        let textView = makeTextView()
+        pasteboard.clearContents()
+        XCTAssertTrue(pasteboard.writeObjects([source as NSURL]))
+        pasteboard.setString(source.path, forType: .string)
+
+        XCTAssertTrue(textView.pasteImage(from: pasteboard))
+        XCTAssertEqual(textView.string, "![图片](Attachments/logo.png)")
+    }
+
     private func makeTextView() -> DraftTextView {
         let textView = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
         textView.isRichText = false

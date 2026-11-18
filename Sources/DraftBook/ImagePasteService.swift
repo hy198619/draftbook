@@ -17,11 +17,23 @@ enum ImagePasteService {
             return save(data: png, name: "截图", extension: "png", store: store)
         }
 
+        // Screenshot tools disagree on the flavour they put on the pasteboard
+        // (TIFF, PDF, HEIC, private types). Let AppKit decode whatever it can.
+        if let image = NSImage(pasteboard: pasteboard),
+           let tiff = image.tiffRepresentation,
+           let png = pngData(fromTIFF: tiff) {
+            return save(data: png, name: "截图", extension: "png", store: store)
+        }
+
         if let tiff = pasteboard.data(forType: .tiff),
            let png = pngData(fromTIFF: tiff) {
             return save(data: png, name: "截图", extension: "png", store: store)
         }
 
+        InteractionDiagnostics.record(
+            "image.paste.unhandled",
+            details: (pasteboard.types ?? []).map(\.rawValue).joined(separator: ",")
+        )
         return nil
     }
 

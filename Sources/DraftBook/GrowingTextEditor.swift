@@ -344,23 +344,32 @@ final class DraftTextView: NSTextView {
     /// image and a text representation on the pasteboard, and hijacking those
     /// pastes would be far more annoying than helpful.
     override func paste(_ sender: Any?) {
-        if !hasMarkedText(), pasteImage(from: .general) { return }
+        let pasteboard = NSPasteboard.general
+        InteractionDiagnostics.record("editor.paste.received")
+        if !hasMarkedText(), pasteImage(from: pasteboard) { return }
         super.paste(sender)
     }
 
     /// Exposed for tests: pasteboards can be created by name, so the whole
     /// clipboard path is exercised without touching the user's clipboard.
+    ///
+    /// Copying files in Finder is an explicit "I mean this file" gesture, so a
+    /// file URL wins even when the pasteboard also carries its path as text.
+    /// Otherwise text wins: web pages, Excel and Word all put an image flavour
+    /// next to the text people actually want to paste.
     func pasteImage(from pasteboard: NSPasteboard) -> Bool {
-        if pasteboard.string(forType: .string) != nil { return false }
-
+        InteractionDiagnostics.record("editor.paste.image")
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
            let imageURL = urls.first(where: { AttachmentStore.supportedExtensions.contains($0.pathExtension.lowercased()) }),
            let path = imageFileHandler?(imageURL) {
             return insertImageReference(path)
         }
 
-        if pasteboard.data(forType: .png) != nil || pasteboard.data(forType: .tiff) != nil,
-           let path = imagePasteHandler?(pasteboard) {
+        if pasteboard.string(forType: .string) != nil { return false }
+
+        // No text flavour: let the service decode whatever image type this
+        // pasteboard carries (TIFF, PNG, HEIC, PDF…) and save it.
+        if let path = imagePasteHandler?(pasteboard) {
             return insertImageReference(path)
         }
 
@@ -396,12 +405,49 @@ final class DraftTextView: NSTextView {
     }
 
     /// Routes the Edit ▸ 插入图片… menu item to whichever editor has focus.
+    /// `NSApp.keyWindow` can be nil while the app restores its own activation,
+    /// so walk every window before giving up — and say so instead of beeping
+    /// into the void.
     static func insertImageIntoFocusedEditor() {
-        guard let editor = NSApp.keyWindow?.firstResponder as? DraftTextView else {
-            NSSound.beep()
+        if let editor = focusedEditor() {
+            editor.presentImagePicker()
             return
         }
-        editor.presentImagePicker()
+
+        let alert = NSAlert()
+        alert.messageText = "先点进一条草稿"
+        alert.informativeText = "把光标放进输入框或草稿正文，再插入图片。"
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "好")
+        alert.runModal()
+    }
+
+    private static func focusedEditor() -> DraftTextView? {
+        if let responder = NSApp.keyWindow?.firstResponder as? DraftTextView {
+            return responder
+        }
+
+        for window in NSApp.windows {
+            if let responder = window.firstResponder as? DraftTextView, responder.isEditable {
+                return responder
+            }
+            if let found = firstEditor(in: window.contentView) {
+                return found
+            }
+        }
+        return nil
+    }
+
+    private static func firstEditor(in view: NSView?) -> DraftTextView? {
+        guard let view else { return nil }
+        if let editor = view as? DraftTextView, editor.isEditable,
+           editor.window?.isVisible == true {
+            return editor
+        }
+        for subview in view.subviews {
+            if let found = firstEditor(in: subview) { return found }
+        }
+        return nil
     }
 
     override func becomeFirstResponder() -> Bool {
@@ -445,9 +491,17 @@ final class DraftTextView: NSTextView {
     override func keyDown(with event: NSEvent) {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isCommandReturn = event.keyCode == 36 && modifiers.contains(.command)
+        let isPlainCommandV = event.keyCode == 9 && modifiers == .command
 
         if isCommandReturn, !hasMarkedText() {
             commitAction?()
+            return
+        }
+
+        // Belt and braces: the Edit ▸ Paste menu item normally reaches
+        // paste(_:), but a window that never becomes key (this app toggles
+        // activation itself) can swallow the shortcut before AppKit routes it.
+        if isPlainCommandV, !hasMarkedText(), pasteImage(from: .general) {
             return
         }
 

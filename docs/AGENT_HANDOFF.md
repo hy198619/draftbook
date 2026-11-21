@@ -1,6 +1,6 @@
 # DraftBook 跨平台开发交接
 
-> 核对基线：macOS `v0.9.8`、Windows `0.9.6-preview.5`，仓库 `main`。记录日期：2026-11-18。版本和 Release 状态会变化；新 Agent 开始前必须核对 Git、源代码和 GitHub 实际状态。
+> 核对基线：macOS `v0.9.10`、Windows `0.9.6-preview.5`，仓库 `main`。记录日期：2026-11-21。版本和 Release 状态会变化；新 Agent 开始前必须核对 Git、源代码和 GitHub 实际状态。
 
 ## 开始工作的方式
 
@@ -73,7 +73,7 @@ Windows 打包需在受支持的 Windows/.NET 环境运行 `windows/scripts/publ
 
 ## 当前平台状态和专门材料
 
-- macOS 最近记录版本为 0.9.8；版本改动和发布流程见 `CHANGELOG.md`、`RELEASE.md`，真实版本须查 GitHub。
+- macOS 最近记录版本为 0.9.10；版本改动和发布流程见 `CHANGELOG.md`、`RELEASE.md`，真实版本须查 GitHub。
 - Windows 当前记录版本为 `0.9.6-preview.5`；技术事实、已完成/待真机验证事项、界面方向、更新渠道和内测限制见 `docs/WINDOWS_HANDOFF.md`。
 - Windows schema 和合成夹具：`windows/spec/DATA_COMPATIBILITY.md`、`windows/spec/fixtures/`。
 - Windows 验收与状态：`windows/spec/MVP_ACCEPTANCE.md`、`windows/spec/IMPLEMENTATION_STATUS.md`、`windows/spec/BETA_TEST_GUIDE.md`。

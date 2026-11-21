@@ -48,6 +48,11 @@ struct DraftBookApp: App {
             CommandGroup(after: .pasteboard) {
                 Divider()
 
+                Button("粘贴为图片…") {
+                    DraftTextView.pasteImageIntoFocusedEditor()
+                }
+                .keyboardShortcut("v", modifiers: [.command, .option])
+
                 Button("插入图片…") {
                     DraftTextView.insertImageIntoFocusedEditor()
                 }

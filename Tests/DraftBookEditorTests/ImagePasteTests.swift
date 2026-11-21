@@ -125,6 +125,84 @@ final class ImagePasteTests: XCTestCase {
         XCTAssertEqual(textView.string, "![图片](Attachments/logo.png)")
     }
 
+    /// The 0.9.9 bug: a chat app (WeChat, Feishu) or a capture tool puts an
+    /// image on the pasteboard *and* a blank string. A blank flavour is not
+    /// text anybody wants, so it must not swallow the picture.
+    func testBlankTextFlavourDoesNotBlockImagePaste() throws {
+        for blank in ["", " ", "\n"] {
+            let textView = makeTextView()
+            pasteboard.clearContents()
+            pasteboard.setData(pngData, forType: .png)
+            pasteboard.setString(blank, forType: .string)
+
+            XCTAssertTrue(textView.pasteImage(from: pasteboard), "空白文本 flavour 挡掉了图片：\(blank.debugDescription)")
+            XCTAssertEqual(textView.string, "![图片](Attachments/截图.png)")
+        }
+    }
+
+    /// Same bug, second shape: the clipboard carries the file name or the
+    /// image URL beside the picture. That is still “I want this image”.
+    func testImageNameOrURLTextFlavourDoesNotBlockImagePaste() throws {
+        let candidates = [
+            "截图.png",
+            "/Users/me/Downloads/Screenshot 2026-11-19 at 14.36.15.png",
+            "https://example.com/img/a.jpeg?size=large",
+            "img.HEIC"
+        ]
+        for candidate in candidates {
+            let textView = makeTextView()
+            pasteboard.clearContents()
+            pasteboard.setData(pngData, forType: .png)
+            pasteboard.setString(candidate, forType: .string)
+
+            XCTAssertTrue(textView.pasteImage(from: pasteboard), "图片名/URL 文本挡住了插图：\(candidate)")
+        }
+    }
+
+    /// Real text stays real text: copying a table must never turn into a
+    /// picture, whatever else is on the clipboard.
+    func testMultiLineOrProseTextStillWins() throws {
+        let textView = makeTextView()
+        pasteboard.clearContents()
+        pasteboard.setData(pngData, forType: .png)
+        pasteboard.setString("标题\t数值\n甲\t1\n乙\t2", forType: .string)
+
+        XCTAssertFalse(textView.pasteImage(from: pasteboard))
+        XCTAssertEqual(textView.string, "")
+    }
+
+    /// ⌥⌘V is the escape hatch: with force the text flavour is ignored.
+    func testForcedPasteInsertsImageBesideTextFlavour() throws {
+        let textView = makeTextView()
+        pasteboard.clearContents()
+        pasteboard.setData(pngData, forType: .png)
+        pasteboard.setString("正文一段", forType: .string)
+
+        XCTAssertFalse(textView.pasteImage(from: pasteboard))
+        XCTAssertTrue(textView.pasteImage(from: pasteboard, force: true))
+        XCTAssertEqual(textView.string, "![图片](Attachments/截图.png)")
+    }
+
+    func testImageNameShapeProbe() {
+        XCTAssertTrue(DraftTextView.looksLikeImageNameOrURL("a.png"))
+        XCTAssertTrue(DraftTextView.looksLikeImageNameOrURL("/Users/me/图片/photo.heic"))
+        XCTAssertFalse(DraftTextView.looksLikeImageNameOrURL("一段正文"))
+        XCTAssertFalse(DraftTextView.looksLikeImageNameOrURL("两行\n文字"))
+        XCTAssertFalse(DraftTextView.looksLikeImageNameOrURL(String(repeating: "a", count: 4000) + ".png"))
+    }
+
+    /// A diagnostic report must describe the clipboard, never copy it.
+    func testPasteboardSummaryDoesNotLeakClipboardText() {
+        pasteboard.clearContents()
+        pasteboard.setData(pngData, forType: .png)
+        pasteboard.setString("客户的私密电话号码 13800000000", forType: .string)
+
+        let summary = DraftTextView.pasteboardSummary(pasteboard)
+        XCTAssertFalse(summary.contains("13800000000"))
+        XCTAssertFalse(summary.contains("私密"))
+        XCTAssertTrue(summary.contains("textFlavour=text"))
+    }
+
     private func makeTextView() -> DraftTextView {
         let textView = DraftTextView(frame: NSRect(x: 0, y: 0, width: 400, height: 200))
         textView.isRichText = false

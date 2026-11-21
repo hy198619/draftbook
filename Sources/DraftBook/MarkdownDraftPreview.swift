@@ -61,6 +61,75 @@ struct MarkdownDraftPreview: View {
         return image
     }
 
+    /// A line that holds a picture, or a line of text.
+    enum PreviewLine {
+        case text([any Markup])
+        case image(source: String)
+    }
+
+    /// CommonMark ends a paragraph on a *blank* line, so a caption typed on the
+    /// next line keeps itself and the image in one paragraph, and the picture
+    /// would fall back to literal `[图片：…](…)` text. The product promise is a
+    /// picture alone on its line, so split the paragraph on soft breaks and
+    /// promote any such line. Returns nil when no line is image-shaped, leaving
+    /// genuine inline flow untouched.
+    static func previewLines(of paragraph: Paragraph) -> [PreviewLine]? {
+        var lines: [[any Markup]] = [[]]
+        for child in Array(paragraph.children) {
+            if child is SoftBreak || child is LineBreak {
+                lines.append([])
+                continue
+            }
+            lines[lines.count - 1].append(child)
+        }
+
+        let mapped: [PreviewLine] = lines.flatMap { nodes -> [PreviewLine] in
+            let meaningful = nodes.filter { !isBlankText($0) }
+            if meaningful.count == 1, let image = meaningful.first as? Markdown.Image {
+                return [.image(source: image.source ?? "")]
+            }
+            return splitLeadingImage(nodes) ?? [.text(nodes)]
+        }
+
+        let hasImageLine = mapped.contains { line in
+            if case .image = line { return true }
+            return false
+        }
+        return hasImageLine ? mapped : nil
+    }
+
+    /// Pasting an image and then typing without a newline puts the caption on
+    /// the *same* line: `![图片](…)配文`. The image is still what the user meant
+    /// to place, so draw the picture and push whatever followed it under the
+    /// picture. Text ahead of the image means real inline flow, which stays as
+    /// literal text.
+    static func splitLeadingImage(_ nodes: [any Markup]) -> [PreviewLine]? {
+        guard let imageIndex = nodes.firstIndex(where: { $0 is Markdown.Image }) else { return nil }
+        guard nodes[0..<imageIndex].allSatisfy(isBlankText) else { return nil }
+        let image = nodes[imageIndex]
+        guard let source = (image as? Markdown.Image)?.source else { return nil }
+
+        var result: [PreviewLine] = [.image(source: source)]
+        let trailing = Array(nodes[(imageIndex + 1)...])
+        if trailing.contains(where: { !isBlankText($0) }) {
+            result.append(.text(trailing))
+        }
+        return result
+    }
+
+    private static func isBlankText(_ node: any Markup) -> Bool {
+        guard let text = node as? Markdown.Text else { return false }
+        return text.string.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    private func attributedLine(_ nodes: [any Markup]) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        for node in nodes {
+            result.append(nativeInline(node))
+        }
+        return result
+    }
+
     private static func lineIsExplicitBlockQuote(_ line: String) -> Bool {
         var index = line.startIndex
         var leadingSpaces = 0
@@ -91,6 +160,18 @@ struct MarkdownDraftPreview: View {
                     relativePath: image.source ?? "",
                     directoryURL: attachmentDirectory
                 ))
+            }
+            if let lines = Self.previewLines(of: paragraph) {
+                return AnyView(VStack(alignment: .leading, spacing: 6) {
+                    ForEach(lines.indices, id: \.self) { index in
+                        switch lines[index] {
+                        case .image(let source):
+                            DraftImageView(relativePath: source, directoryURL: attachmentDirectory)
+                        case .text(let nodes):
+                            NativeMarkdownText(content: attributedLine(nodes), onEdit: onEdit)
+                        }
+                    }
+                })
             }
             return AnyView(NativeMarkdownText(content: nativeInline(paragraph), onEdit: onEdit))
         case let code as CodeBlock:

@@ -346,8 +346,15 @@ final class DraftTextView: NSTextView {
     override func paste(_ sender: Any?) {
         let pasteboard = NSPasteboard.general
         InteractionDiagnostics.record("editor.paste.received")
-        if !hasMarkedText(), pasteImage(from: pasteboard) { return }
+        if !hasMarkedText(), pasteImage(from: pasteboard, force: Self.currentEventForcesImage()) { return }
         super.paste(sender)
+    }
+
+    /// ⌥⌘V is the escape hatch when an app insists on putting text beside the
+    /// image the user actually copied.
+    static func currentEventForcesImage() -> Bool {
+        let modifiers = NSApp.currentEvent?.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        return modifiers == [.command, .option]
     }
 
     /// Exposed for tests: pasteboards can be created by name, so the whole
@@ -357,23 +364,66 @@ final class DraftTextView: NSTextView {
     /// file URL wins even when the pasteboard also carries its path as text.
     /// Otherwise text wins: web pages, Excel and Word all put an image flavour
     /// next to the text people actually want to paste.
-    func pasteImage(from pasteboard: NSPasteboard) -> Bool {
-        InteractionDiagnostics.record("editor.paste.image")
+    ///
+    /// `force` (⌥⌘V) skips the text rule entirely.
+    func pasteImage(from pasteboard: NSPasteboard, force: Bool = false) -> Bool {
+        InteractionDiagnostics.record(
+            "editor.paste.image",
+            details: Self.pasteboardSummary(pasteboard) + (force ? " forced" : "")
+        )
         if let urls = pasteboard.readObjects(forClasses: [NSURL.self], options: nil) as? [URL],
            let imageURL = urls.first(where: { AttachmentStore.supportedExtensions.contains($0.pathExtension.lowercased()) }),
            let path = imageFileHandler?(imageURL) {
             return insertImageReference(path)
         }
 
-        if pasteboard.string(forType: .string) != nil { return false }
+        if !force, Self.textFlavourShouldWin(pasteboard) { return false }
 
-        // No text flavour: let the service decode whatever image type this
+        // No text worth keeping: let the service decode whatever image type this
         // pasteboard carries (TIFF, PNG, HEIC, PDF…) and save it.
         if let path = imagePasteHandler?(pasteboard) {
             return insertImageReference(path)
         }
 
         return false
+    }
+
+    /// Whether the text flavour is something the user meant to paste.
+    ///
+    /// Chat and capture apps (WeChat, Feishu, some screenshot tools) put an
+    /// image on the pasteboard *and* a blank or file-name-shaped string with
+    /// it. Treating that as "the user wants text" silently ate every image
+    /// paste, which is exactly what the 0.9.9 beta testers hit.
+    static func textFlavourShouldWin(_ pasteboard: NSPasteboard) -> Bool {
+        guard let text = pasteboard.string(forType: .string) else { return false }
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return false }
+        return !looksLikeImageNameOrURL(trimmed)
+    }
+
+    /// A single-line name or URL that ends in a supported image extension.
+    static func looksLikeImageNameOrURL(_ text: String) -> Bool {
+        guard !text.contains("\n"), !text.contains("\r"), text.count <= 1024 else { return false }
+        let lastSegment = text.split(separator: "/").last.map(String.init) ?? text
+        let base = lastSegment.split(separator: "?").first.map(String.init) ?? lastSegment
+        let name = base.split(separator: "#").first.map(String.init) ?? base
+        return AttachmentStore.supportedExtensions.contains((name as NSString).pathExtension.lowercased())
+    }
+
+    /// Clipboard *shape* only — never clipboard content — so a diagnostic report
+    /// can prove which branch a paste took without leaking anything the user
+    /// copied.
+    static func pasteboardSummary(_ pasteboard: NSPasteboard) -> String {
+        let types = (pasteboard.types ?? []).map(\.rawValue).joined(separator: ",")
+        let flavour: String
+        if pasteboard.string(forType: .string) == nil {
+            flavour = "none"
+        } else if textFlavourShouldWin(pasteboard) {
+            flavour = "text"
+        } else {
+            flavour = "blank-or-image-name"
+        }
+        return "types=[\(types)] textFlavour=\(flavour)"
     }
 
     @discardableResult
@@ -402,6 +452,13 @@ final class DraftTextView: NSTextView {
             guard let path = imageFileHandler?(url) else { continue }
             insertImageReference(path)
         }
+    }
+
+    /// Routes Edit ▸ 粘贴为图片… (⌥⌘V) to whichever editor has focus.
+    static func pasteImageIntoFocusedEditor() {
+        guard let editor = focusedEditor() else { return }
+        if editor.pasteImage(from: .general, force: true) { return }
+        editor.paste(nil)
     }
 
     /// Routes the Edit ▸ 插入图片… menu item to whichever editor has focus.
@@ -492,6 +549,7 @@ final class DraftTextView: NSTextView {
         let modifiers = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
         let isCommandReturn = event.keyCode == 36 && modifiers.contains(.command)
         let isPlainCommandV = event.keyCode == 9 && modifiers == .command
+        let isImagePasteShortcut = event.keyCode == 9 && modifiers == [.command, .option]
 
         if isCommandReturn, !hasMarkedText() {
             commitAction?()
@@ -501,6 +559,12 @@ final class DraftTextView: NSTextView {
         // Belt and braces: the Edit ▸ Paste menu item normally reaches
         // paste(_:), but a window that never becomes key (this app toggles
         // activation itself) can swallow the shortcut before AppKit routes it.
+        if isImagePasteShortcut, !hasMarkedText() {
+            if pasteImage(from: .general, force: true) { return }
+            super.paste(nil)
+            return
+        }
+
         if isPlainCommandV, !hasMarkedText(), pasteImage(from: .general) {
             return
         }

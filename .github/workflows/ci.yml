@@ -4,22 +4,41 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
   test:
-    name: Swift tests
-    runs-on: macos-14
+    name: Swift tests (${{ matrix.os }} · ${{ matrix.xcode_label }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 与发布二进制同源的构建环境，同时覆盖 macOS 15 内测用户所在平台。
+          - os: macos-15
+            developer_dir: /Applications/Xcode_16.2.app/Contents/Developer
+            xcode_label: Xcode 16.2
+          # 最新系统与最新 Swift 的前向兼容检查。
+          # macOS 14 runner 已于 2026-11-02 全线下架，最低部署目标 14.0 由
+          # Package.swift 声明保证，无法再用 runner 实机覆盖。
+          - os: macos-26
+            developer_dir: /Applications/Xcode.app/Contents/Developer
+            xcode_label: default Xcode
     env:
-      DEVELOPER_DIR: /Applications/Xcode_16.2.app/Contents/Developer
+      DEVELOPER_DIR: ${{ matrix.developer_dir }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
 
       - name: Verify Xcode toolchain
-        run: xcodebuild -version
+        run: |
+          sw_vers
+          xcodebuild -version
+          swift --version
 
       - name: Run tests
         run: swift test

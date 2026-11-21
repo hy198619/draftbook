@@ -170,25 +170,51 @@ struct MainView: View {
     private func handleHeaderHover(_ hovering: Bool) {
         if hovering {
             headerHideTask?.cancel()
-            guard !headerVisible else { return }
-            headerRevealTask?.cancel()
-            InteractionDiagnostics.record("toolbar.revealScheduled")
-            headerRevealTask = Task { @MainActor in
-                try? await Task.sleep(for: .seconds(1))
-                guard !Task.isCancelled else { return }
-                headerVisible = true
-                InteractionDiagnostics.record("toolbar.revealed")
+            headerHideTask = nil
+            if case .startReveal = HeaderHoverPlan.onEnter(
+                visible: headerVisible,
+                revealPending: headerRevealTask != nil
+            ) {
+                InteractionDiagnostics.record("toolbar.revealScheduled")
+                headerRevealTask = Task { @MainActor in
+                    try? await Task.sleep(for: .seconds(1))
+                    headerRevealTask = nil
+                    guard !Task.isCancelled else { return }
+                    switch HeaderHoverPlan.onTick(
+                        stillHovering: headerRegionHovered || titlebarRegionHovered,
+                        visible: headerVisible
+                    ) {
+                    case .reveal:
+                        headerVisible = true
+                        InteractionDiagnostics.record("toolbar.revealed")
+                    default:
+                        // 鼠标只是抖了一下就走了：不显示，但下次进入会重新起表。
+                        InteractionDiagnostics.record("toolbar.revealSkipped")
+                    }
+                }
             }
         } else {
-            headerRevealTask?.cancel()
-            guard !headerMustRemainVisible else { return }
-            headerHideTask?.cancel()
-            InteractionDiagnostics.record("toolbar.hideScheduled")
-            headerHideTask = Task { @MainActor in
-                try? await Task.sleep(for: .milliseconds(350))
-                guard !Task.isCancelled, !headerMustRemainVisible else { return }
-                headerVisible = false
-                InteractionDiagnostics.record("toolbar.hidden")
+            if case .hide = HeaderHoverPlan.onExit(
+                visible: headerVisible,
+                mustRemainVisible: headerMustRemainVisible
+            ) {
+                InteractionDiagnostics.record("toolbar.hideScheduled")
+                headerHideTask?.cancel()
+                headerHideTask = Task { @MainActor in
+                    try? await Task.sleep(for: .milliseconds(350))
+                    headerHideTask = nil
+                    guard !Task.isCancelled else { return }
+                    switch HeaderHoverPlan.onHideTick(
+                        stillHovering: headerRegionHovered || titlebarRegionHovered,
+                        mustRemainVisible: headerMustRemainVisible
+                    ) {
+                    case .hide:
+                        headerVisible = false
+                        InteractionDiagnostics.record("toolbar.hidden")
+                    default:
+                        break
+                    }
+                }
             }
         }
     }
@@ -674,6 +700,7 @@ struct MainView: View {
 
     private func showSearch() {
         headerRevealTask?.cancel()
+        headerRevealTask = nil
         headerVisible = true
         searchVisible = true
         composerFocused = false

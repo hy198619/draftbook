@@ -33,7 +33,7 @@ Swift `DraftBookCore` 使用 Combine；它表达了 macOS 业务规则，但不�
 ## 不可变契约
 
 - macOS bundle ID 与本地数据身份保持 `com.yangyuxuan.DraftBook`。更改会影响应用身份、用户数据定位和已安装实例。
-- macOS 最低系统版本保持 macOS 14.0；同时核对 `Package.swift`、`Resources/Info.plist` 和 CI/build 配置。
+- macOS 最低系统版本保持 macOS 14.0；同时核对 `Package.swift`、`Resources/Info.plist` 和 CI/build 配置。CI 跑在 `macos-15` 与 `macos-26` 两个托管 runner 上（macOS 14 runner 已下架），所以最低版本靠声明而非实机覆盖。
 - macOS 与 Windows 当前共用完整备份 schema v5。顶层为 `schemaVersion`、`composer`、`drafts`、`labelNames`；日期以 ISO 8601 表示。枚举原始值、字段、缺省值与迁移规则见 `windows/spec/DATA_COMPATIBILITY.md` 和两端模型实现。
 - 遇到 schema 高于当前版本必须安全拒绝，保留原始用户数据；不能部分加载后覆盖。
 - macOS 更新通道读取 `https://api.github.com/repos/hy198619/draftbook/releases?per_page=100`，Release/tag 为 `v<semver>`，安装资产名为 `DraftBook-v<semver>-macOS-unsigned.dmg`，并校验同一 Release 的 `SHA256SUMS.txt`。

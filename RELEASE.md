@@ -40,7 +40,7 @@ Developer ID 公证版可以直接通过 GitHub 或官网分发，不需要 Test
 
 ## 发布前检查
 
-- 全部单元测试通过；
+- 全部单元测试通过：本地 `swift test` 与 GitHub CI 双 runner 矩阵（`macos-15` + Xcode 16.2、`macos-26` + 镜像默认 Xcode）都要绿。macOS 14 托管 runner 已于 2026-11-02 下架，最低部署目标 14.0 只能由 `Package.swift` 声明保证，别再把它写成已实机覆盖；
 - App 为 `arm64 + x86_64` 通用构建；
 - App 图标、版本号和版权信息正确；
 - 使用干净数据目录启动并完成输入、保存和重启恢复；

@@ -61,6 +61,29 @@ enum WindowDockGeometry {
         result.origin.y = min(max(result.minY, visibleFrame.minY), visibleFrame.maxY - result.height)
         return result
     }
+
+    /// 某个边的“收起位置”对应的 frame。容忍度默认 12 像素，覆盖动画残差和不同
+    /// 屏幕的取整误差。
+    static func collapsedSide(
+        for windowFrame: NSRect,
+        in visibleFrame: NSRect,
+        tolerance: CGFloat = 12
+    ) -> WindowDockSide? {
+        for side in [WindowDockSide.left, .right] {
+            let expanded = expandedFrame(from: windowFrame, side: side, in: visibleFrame)
+            let collapsed = collapsedFrame(from: expanded, side: side, in: visibleFrame)
+            if abs(windowFrame.minX - collapsed.minX) <= tolerance { return side }
+        }
+        return nil
+    }
+
+    /// 窗口还有多少面积落在可见区内，用来判断“叫不醒的窗口”。
+    static func visibleRatio(_ windowFrame: NSRect, in visibleFrame: NSRect) -> CGFloat {
+        guard windowFrame.width > 0, windowFrame.height > 0 else { return 1 }
+        let visible = windowFrame.intersection(visibleFrame)
+        guard !visible.isNull else { return 0 }
+        return (visible.width * visible.height) / (windowFrame.width * windowFrame.height)
+    }
 }
 
 struct WindowConfigurator: NSViewRepresentable {
@@ -138,11 +161,46 @@ struct WindowConfigurator: NSViewRepresentable {
             window.titlebarAppearsTransparent = true
             window.acceptsMouseMovedEvents = true
 
-            guard self.autoHideAtScreenEdge != autoHideAtScreenEdge else { return }
+            let settingChanged = self.autoHideAtScreenEdge != autoHideAtScreenEdge
             self.autoHideAtScreenEdge = autoHideAtScreenEdge
-            if !autoHideAtScreenEdge {
+            if settingChanged, !autoHideAtScreenEdge {
                 restoreNormalWindowPosition()
             }
+            reconcileRestoredDockState(with: window)
+        }
+
+        /// 收起状态下退出应用（崩溃、强制退出、被脚本 kill 都会走到），屏外的收起
+        /// 位置会被存进窗口 frame。下次启动时窗口只剩 8 像素在屏内，而内存里的
+        /// dockState 是 normal——鼠标划窄边没有任何反应，因为代码不知道自己收起过，
+        /// 贴边识别又要求窗口紧贴屏幕边（差 382 像素，判不出停靠）。实测日志：
+        /// 恢复 frame `x=-382 width=390`，6 次 `edge.pointerEntered dockState=normal`
+        /// 全部无响应。这里按 frame 把意图还原成收起状态；对不上收起形状、又几乎
+        /// 完全在屏外的窗口，一律拉回屏内，绝不留“叫不醒”的窗口。
+        private func reconcileRestoredDockState(with window: NSWindow) {
+            guard dockState == .normal, expandedFrame == nil,
+                  let visibleFrame = (window.screen ?? NSScreen.main)?.visibleFrame else { return }
+            let frame = window.frame
+
+            if autoHideAtScreenEdge, let side = WindowDockGeometry.collapsedSide(for: frame, in: visibleFrame) {
+                let expanded = WindowDockGeometry.expandedFrame(from: frame, side: side, in: visibleFrame)
+                expandedFrame = expanded
+                dockVisibleFrame = visibleFrame
+                dockState = .collapsed(side)
+                InteractionDiagnostics.record(
+                    "edge.dockRestored",
+                    window: window,
+                    details: "side=\(side) x=\(Int(frame.minX))"
+                )
+                return
+            }
+
+            guard WindowDockGeometry.visibleRatio(frame, in: visibleFrame) < 0.25 else { return }
+            InteractionDiagnostics.record(
+                "edge.frameRescued",
+                window: window,
+                details: "x=\(Int(frame.minX)) ratio=\(String(format: "%.2f", WindowDockGeometry.visibleRatio(frame, in: visibleFrame)))"
+            )
+            setFrame(WindowDockGeometry.constrainedFrame(frame, in: visibleFrame), animated: false)
         }
 
         func pointerEntered() {
